@@ -30,6 +30,16 @@ const EMAIL_DESTRUCTIVE_ANNOTATIONS: ToolAnnotations = {
 };
 
 /**
+ * Annotations for create operations (not idempotent - each call creates new item).
+ */
+const EMAIL_CREATE_ANNOTATIONS: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: true,
+};
+
+/**
  * Register email operation MCP tools with the server.
  * @param server MCP server instance
  * @param jmapClient JMAP client for API calls
@@ -708,5 +718,179 @@ export function registerEmailOperationTools(
     }
   );
 
-  logger.debug('Email operation tools registered: mark_as_read, mark_as_unread, delete_email, move_email, add_label, remove_label');
+  // create_draft - create a new draft email (EMAIL-12)
+  server.registerTool(
+    'create_draft',
+    {
+      title: 'Create Draft Email',
+      description: 'Create a new draft email in the Drafts mailbox for later editing or sending.',
+      inputSchema: {
+        to: z.array(z.string().email()).optional().describe('Recipient email addresses'),
+        cc: z.array(z.string().email()).optional().describe('CC email addresses'),
+        bcc: z.array(z.string().email()).optional().describe('BCC email addresses'),
+        subject: z.string().optional().describe('Email subject'),
+        body: z.string().optional().describe('Plain text email body'),
+        inReplyTo: z.string().optional().describe('Message-ID of the email being replied to'),
+      },
+      annotations: EMAIL_CREATE_ANNOTATIONS,
+    },
+    async ({ to, cc, bcc, subject, body, inReplyTo }) => {
+      logger.debug({ to, cc, bcc, subject, hasBody: !!body, inReplyTo }, 'create_draft called');
+
+      try {
+        const session = jmapClient.getSession();
+
+        // Find Drafts mailbox
+        const mailboxResponse = await jmapClient.request([
+          [
+            'Mailbox/query',
+            {
+              accountId: session.accountId,
+              filter: { role: 'drafts' },
+            },
+            'findDrafts',
+          ],
+        ]);
+
+        const queryResult = jmapClient.parseMethodResponse(mailboxResponse.methodResponses[0]);
+        if (!queryResult.success) {
+          logger.error({ error: queryResult.error }, 'JMAP error finding Drafts mailbox');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to find Drafts mailbox',
+              },
+            ],
+          };
+        }
+
+        const draftsIds = (queryResult.data as { ids: string[] }).ids;
+        if (!draftsIds || draftsIds.length === 0) {
+          logger.error({}, 'No Drafts mailbox found');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'No Drafts mailbox found. Cannot create draft.',
+              },
+            ],
+          };
+        }
+
+        const draftsMailboxId = draftsIds[0];
+
+        // Build email create object
+        const emailCreate: Record<string, unknown> = {
+          mailboxIds: { [draftsMailboxId]: true },
+          keywords: { '$draft': true, '$seen': true },
+          subject: subject || '',
+          bodyStructure: { type: 'text/plain', partId: '1' },
+          bodyValues: {
+            '1': {
+              value: body || '',
+              isEncodingProblem: false,
+              isTruncated: false,
+            },
+          },
+        };
+
+        // Add optional address fields
+        if (to && to.length > 0) {
+          emailCreate.to = to.map((email) => ({ email }));
+        }
+        if (cc && cc.length > 0) {
+          emailCreate.cc = cc.map((email) => ({ email }));
+        }
+        if (bcc && bcc.length > 0) {
+          emailCreate.bcc = bcc.map((email) => ({ email }));
+        }
+        if (inReplyTo) {
+          emailCreate.inReplyTo = [inReplyTo];
+        }
+
+        // Create the draft
+        const createResponse = await jmapClient.request([
+          [
+            'Email/set',
+            {
+              accountId: session.accountId,
+              create: {
+                draft: emailCreate,
+              },
+            },
+            'createDraft',
+          ],
+        ]);
+
+        const createResult = jmapClient.parseMethodResponse(createResponse.methodResponses[0]);
+        if (!createResult.success) {
+          logger.error({ error: createResult.error }, 'JMAP error in create_draft');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to create draft: ${createResult.error?.description || createResult.error?.type || 'Unknown error'}`,
+              },
+            ],
+          };
+        }
+
+        const setResponse = createResult.data as unknown as EmailSetResponse;
+        if (setResponse.notCreated?.draft) {
+          const error = setResponse.notCreated.draft;
+          logger.error({ error }, 'Email/set notCreated in create_draft');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to create draft: ${error.type} - ${error.description || ''}`,
+              },
+            ],
+          };
+        }
+
+        const created = setResponse.created?.draft;
+        if (!created) {
+          logger.error({}, 'No created draft in response');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to create draft: no created email in response',
+              },
+            ],
+          };
+        }
+
+        logger.debug({ draftId: created.id, threadId: created.threadId }, 'create_draft success');
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ success: true, draftId: created.id, threadId: created.threadId }),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error({ error }, 'Exception in create_draft');
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error creating draft: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  logger.debug('Email operation tools registered: mark_as_read, mark_as_unread, delete_email, move_email, add_label, remove_label, create_draft');
 }
