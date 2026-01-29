@@ -17,8 +17,6 @@ export interface OIDCFlowOptions {
   scope: string;
   /** Redirect URI (must be registered with the OIDC provider) */
   redirectUri: string;
-  /** Local port for callback server (useful when using ngrok/tunnels) */
-  callbackPort: number;
 }
 
 /**
@@ -38,7 +36,14 @@ export interface OIDCFlowOptions {
  * @throws JMAPError on OIDC flow failures
  */
 export async function performOIDCFlow(options: OIDCFlowOptions): Promise<StoredTokens> {
-  const { issuerUrl, clientId, scope, redirectUri, callbackPort } = options;
+  const { issuerUrl, clientId, scope, redirectUri } = options;
+
+  // Extract port from redirect URI for local callback server
+  // For remote URIs (ngrok), default to port 80/443 equivalent on localhost
+  const redirectUrl = new URL(redirectUri);
+  const callbackPort = redirectUrl.port
+    ? parseInt(redirectUrl.port, 10)
+    : (redirectUrl.protocol === 'https:' ? 443 : 80);
 
   // Step 1: OIDC Discovery
   let config: client.Configuration;
@@ -149,7 +154,6 @@ export function getOIDCOptionsFromConfig(config: {
   JMAP_OIDC_CLIENT_ID?: string;
   JMAP_OIDC_SCOPE: string;
   JMAP_OIDC_REDIRECT_URI: string;
-  JMAP_OIDC_CALLBACK_PORT: number;
 }): OIDCFlowOptions | null {
   if (config.JMAP_AUTH_METHOD !== 'oidc') {
     return null;
@@ -164,6 +168,5 @@ export function getOIDCOptionsFromConfig(config: {
     clientId: config.JMAP_OIDC_CLIENT_ID,
     scope: config.JMAP_OIDC_SCOPE,
     redirectUri: config.JMAP_OIDC_REDIRECT_URI,
-    callbackPort: config.JMAP_OIDC_CALLBACK_PORT,
   };
 }

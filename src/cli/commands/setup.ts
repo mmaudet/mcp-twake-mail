@@ -69,7 +69,6 @@ async function testConnection(env: Record<string, string>): Promise<{ success: b
       JMAP_OIDC_CLIENT_ID: env.JMAP_OIDC_CLIENT_ID,
       JMAP_OIDC_SCOPE: env.JMAP_OIDC_SCOPE || 'openid profile email offline_access',
       JMAP_OIDC_REDIRECT_URI: env.JMAP_OIDC_REDIRECT_URI || 'http://localhost:3000/callback',
-      JMAP_OIDC_CALLBACK_PORT: parseInt(env.JMAP_OIDC_CALLBACK_PORT, 10) || 3000,
       JMAP_REQUEST_TIMEOUT: 30000,
       LOG_LEVEL: 'error' as const,
     };
@@ -86,7 +85,6 @@ async function testConnection(env: Record<string, string>): Promise<{ success: b
         clientId: config.JMAP_OIDC_CLIENT_ID!,
         scope: config.JMAP_OIDC_SCOPE,
         redirectUri: config.JMAP_OIDC_REDIRECT_URI,
-        callbackPort: config.JMAP_OIDC_CALLBACK_PORT,
       });
       console.log('Authentication successful!\n');
     }
@@ -127,12 +125,11 @@ export async function runSetup(): Promise<void> {
   } else if (authMethod === 'bearer') {
     env.JMAP_BEARER_TOKEN = await promptBearerToken();
   } else if (authMethod === 'oidc') {
-    const { issuer, clientId, scope, redirectUri, callbackPort } = await promptOidcAuth();
+    const { issuer, clientId, scope, redirectUri } = await promptOidcAuth();
     env.JMAP_OIDC_ISSUER = issuer;
     env.JMAP_OIDC_CLIENT_ID = clientId;
     env.JMAP_OIDC_SCOPE = scope;
     env.JMAP_OIDC_REDIRECT_URI = redirectUri;
-    env.JMAP_OIDC_CALLBACK_PORT = String(callbackPort);
   }
 
   // Step 4: Test connection

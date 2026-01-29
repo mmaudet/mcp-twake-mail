@@ -75,7 +75,6 @@ export async function promptOidcAuth(): Promise<{
   clientId: string;
   scope: string;
   redirectUri: string;
-  callbackPort: number;
 }> {
   const issuer = await input({
     message: 'OIDC Issuer URL:',
@@ -114,30 +113,7 @@ export async function promptOidcAuth(): Promise<{
     },
   });
 
-  // Extract port from redirect URI if localhost, otherwise ask for local callback port
-  let defaultPort = 3000;
-  try {
-    const url = new URL(redirectUri);
-    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-      defaultPort = parseInt(url.port, 10) || 3000;
-    }
-  } catch {
-    // Use default
-  }
-
-  const callbackPortStr = await input({
-    message: 'Local callback port (for ngrok/tunnels, this is the local port):',
-    default: String(defaultPort),
-    validate: (value) => {
-      const port = parseInt(value, 10);
-      if (isNaN(port) || port < 1 || port > 65535) {
-        return 'Please enter a valid port number (1-65535)';
-      }
-      return true;
-    },
-  });
-
-  return { issuer, clientId, scope, redirectUri, callbackPort: parseInt(callbackPortStr, 10) };
+  return { issuer, clientId, scope, redirectUri };
 }
 
 /**

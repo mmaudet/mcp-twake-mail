@@ -28,7 +28,6 @@ const mockConfig: Config = {
   LOG_LEVEL: 'info',
   JMAP_OIDC_SCOPE: 'openid email offline_access',
   JMAP_OIDC_REDIRECT_URI: 'http://localhost:3000/callback',
-  JMAP_OIDC_CALLBACK_PORT: 3000,
 };
 
 // OIDC config for OIDC tests
@@ -39,7 +38,6 @@ const mockOidcConfig: Config = {
   JMAP_OIDC_CLIENT_ID: 'test-client-id',
   JMAP_OIDC_SCOPE: 'openid email offline_access',
   JMAP_OIDC_REDIRECT_URI: 'http://localhost:3000/callback',
-  JMAP_OIDC_CALLBACK_PORT: 3000,
   JMAP_REQUEST_TIMEOUT: 30000,
   LOG_LEVEL: 'info',
 };

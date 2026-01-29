@@ -116,7 +116,6 @@ describe('oidc-flow', () => {
       clientId: 'test-client-id',
       scope: 'openid email offline_access',
       redirectUri: 'http://localhost:3000/callback',
-      callbackPort: 3000,
     };
 
     it('performs full OIDC flow with PKCE S256', async () => {
@@ -309,7 +308,6 @@ describe('oidc-flow', () => {
         JMAP_OIDC_CLIENT_ID: 'my-client',
         JMAP_OIDC_SCOPE: 'openid email',
         JMAP_OIDC_REDIRECT_URI: 'http://localhost:8080/callback',
-        JMAP_OIDC_CALLBACK_PORT: 8080,
       };
 
       const result = getOIDCOptionsFromConfig(config);
@@ -319,7 +317,6 @@ describe('oidc-flow', () => {
         clientId: 'my-client',
         scope: 'openid email',
         redirectUri: 'http://localhost:8080/callback',
-        callbackPort: 8080,
       });
     });
 
@@ -330,7 +327,6 @@ describe('oidc-flow', () => {
         JMAP_OIDC_CLIENT_ID: 'my-client',
         JMAP_OIDC_SCOPE: 'openid email',
         JMAP_OIDC_REDIRECT_URI: 'http://localhost:3000/callback',
-        JMAP_OIDC_CALLBACK_PORT: 3000,
       };
 
       const result = getOIDCOptionsFromConfig(config);
@@ -345,7 +341,6 @@ describe('oidc-flow', () => {
         JMAP_OIDC_CLIENT_ID: 'my-client',
         JMAP_OIDC_SCOPE: 'openid email',
         JMAP_OIDC_REDIRECT_URI: 'http://localhost:3000/callback',
-        JMAP_OIDC_CALLBACK_PORT: 3000,
       };
 
       const result = getOIDCOptionsFromConfig(config);
@@ -360,7 +355,6 @@ describe('oidc-flow', () => {
         JMAP_OIDC_CLIENT_ID: undefined,
         JMAP_OIDC_SCOPE: 'openid email',
         JMAP_OIDC_REDIRECT_URI: 'http://localhost:3000/callback',
-        JMAP_OIDC_CALLBACK_PORT: 3000,
       };
 
       const result = getOIDCOptionsFromConfig(config);
