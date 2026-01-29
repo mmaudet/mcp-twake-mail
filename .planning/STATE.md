@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 3 In Progress - Core Read Operations (MCP Server Foundation complete)
+**Current focus:** Phase 3 Complete - Core Read Operations (Email MCP Tools complete)
 
 ## Current Position
 
 Phase: 3 of 6 (Core Read Operations)
-Plan: 2 of 3 in phase
-Status: In progress
-Last activity: 2026-01-29 - Completed 03-02-PLAN.md
+Plan: 3 of 3 in phase (COMPLETE)
+Status: Phase complete
+Last activity: 2026-01-29 - Completed 03-03-PLAN.md
 
-Progress: [████████░░] 80% (8 of 10 plans)
+Progress: [█████████░] 90% (9 of 10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 2.58 minutes
-- Total execution time: 0.34 hours
+- Total plans completed: 9
+- Average duration: 2.54 minutes
+- Total execution time: 0.38 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [████████░░] 80% (8 of 10 plans)
 |-------|-------|-------|----------|
 | 01 | 2/2 | 7m | 3.5m |
 | 02 | 4/4 | 9m 15s | 2.3m |
-| 03 | 2/3 | 5m 11s | 2.6m |
+| 03 | 3/3 | 7m 42s | 2.6m |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (1m 45s), 02-02 (2m 38s), 02-04 (2m 14s), 03-01 (3m 49s), 03-02 (1m 22s)
+- Last 5 plans: 02-02 (2m 38s), 02-04 (2m 14s), 03-01 (3m 49s), 03-02 (1m 22s), 03-03 (2m 31s)
 - Trend: Steady velocity, non-TDD plans faster
 
 *Updated after each plan completion*
@@ -70,6 +70,10 @@ Recent decisions affecting current work:
 - 03-02: JMAP validation before MCP connect (ensures valid session before requests)
 - 03-02: Server version hardcoded (0.1.0) matching package.json
 - 03-02: Minimal entry point - all startup logic in server.ts
+- 03-03: MCP registerTool() API used (newer, non-deprecated method)
+- 03-03: JMAP back-reference pattern for search_emails (query+get in single request)
+- 03-03: Separate FULL_EMAIL_PROPERTIES vs SUMMARY_EMAIL_PROPERTIES lists
+- 03-03: Common EMAIL_READ_ANNOTATIONS constant for all email tools
 
 ### Pending Todos
 
@@ -81,8 +85,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T18:35:43Z
-Stopped at: Completed 03-02-PLAN.md (MCP Server Foundation)
+Last session: 2026-01-29T18:39:54Z
+Stopped at: Completed 03-03-PLAN.md (Email MCP Tools)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -119,7 +123,7 @@ Plan 02-04 (Auth Provider Integration) complete with:
 - Secure token storage with 0600 permissions
 - 92 tests covering all auth components
 
-## Phase 3 Progress (IN PROGRESS)
+## Phase 3 Summary (COMPLETE)
 
 Plan 03-01 (Email and Mailbox Transformers) complete with:
 - SimplifiedEmail DTO with boolean flags (isRead, isFlagged, isDraft, isAnswered, isForwarded)
@@ -134,4 +138,20 @@ Plan 03-02 (MCP Server Foundation) complete with:
 - StdioServerTransport for stdio communication
 - Fail-fast error handling with exit code 1
 
-Next: Plan 03-03 (list-mailboxes MCP tool)
+Plan 03-03 (Email MCP Tools) complete with:
+- get_email tool retrieving email by ID with full content (EMAIL-03)
+- search_emails tool with 10 filter parameters (EMAIL-04)
+- get_email_labels tool returning mailbox IDs (EMAIL-11)
+- registerAllTools() aggregator for tool registration
+- All tools use MCP annotations (readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true)
+- 176 tests passing
+
+**Phase 3 Deliverables:**
+- SimplifiedEmail and SimplifiedMailbox DTOs optimized for AI assistants
+- MCP server with JMAP validation on startup
+- Email tools: get_email, search_emails, get_email_labels
+- Mailbox tools: get_mailbox, list_mailboxes
+- Tool registration aggregator for clean server initialization
+- 176 tests covering all components
+
+Next: Phase 4 - Write Operations (move_email, mark_read, mark_flagged, delete_email)
