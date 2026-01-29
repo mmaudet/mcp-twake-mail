@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Authentication System** - Basic, Bearer, and OIDC authentication with secure token storage
 - [x] **Phase 3: Core Read Operations** - MCP server with read-only email and mailbox tools
 - [x] **Phase 4: Email Management Operations** - Write operations for marking, deleting, moving, and labeling emails
-- [ ] **Phase 5: Email Creation & Sending** - Send, reply, and draft creation capabilities
+- [x] **Phase 5: Email Creation & Sending** - Send, reply, and draft creation capabilities
 - [ ] **Phase 6: Advanced Features & Polish** - Threads, attachments, CLI commands, and quality gates
 
 ## Phase Details
@@ -101,8 +101,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — send_email tool with Identity/get, two-phase sending, multipart body support
-- [ ] 05-02-PLAN.md — reply_email tool with threading headers and recipient handling
+- [x] 05-01-PLAN.md — send_email tool with Identity/get, two-phase sending, multipart body support
+- [x] 05-02-PLAN.md — reply_email tool with threading headers and recipient handling
 
 ### Phase 6: Advanced Features & Polish
 **Goal**: Full feature set with threads, attachments, CLI wizard, and quality validation
@@ -130,5 +130,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Authentication System | 4/4 | Complete | 2026-01-29 |
 | 3. Core Read Operations | 4/4 | Complete | 2026-01-29 |
 | 4. Email Management Operations | 2/2 | Complete | 2026-01-29 |
-| 5. Email Creation & Sending | 0/2 | Not started | - |
+| 5. Email Creation & Sending | 2/2 | Complete | 2026-01-29 |
 | 6. Advanced Features & Polish | 0/TBD | Not started | - |
