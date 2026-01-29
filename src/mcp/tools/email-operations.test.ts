@@ -387,14 +387,15 @@ describe('registerEmailOperationTools', () => {
 
   describe('create_draft', () => {
     it('creates draft in Drafts mailbox with $draft keyword and from field', async () => {
-      // First call: get identity + mailboxes
-      // Second call: create draft
+      // First call: get mailboxes
+      // Second call: get identity (optional, with submission capability)
+      // Third call: create draft
       vi.mocked(mockJmapClient.request)
         .mockResolvedValueOnce({
-          methodResponses: [
-            ['Identity/get', { list: [{ id: 'identity-1', email: 'test@example.com', name: 'Test User' }] }, 'getIdentity'],
-            ['Mailbox/get', { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] }, 'getMailboxes'],
-          ],
+          methodResponses: [['Mailbox/get', { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] }, 'getMailboxes']],
+        })
+        .mockResolvedValueOnce({
+          methodResponses: [['Identity/get', { list: [{ id: 'identity-1', email: 'test@example.com', name: 'Test User' }] }, 'getIdentity']],
         })
         .mockResolvedValueOnce({
           methodResponses: [
@@ -411,8 +412,8 @@ describe('registerEmailOperationTools', () => {
           ],
         });
       vi.mocked(mockJmapClient.parseMethodResponse)
-        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity-1', email: 'test@example.com', name: 'Test User' }] } })
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity-1', email: 'test@example.com', name: 'Test User' }] } })
         .mockReturnValueOnce({
           success: true,
           data: {
@@ -439,14 +440,10 @@ describe('registerEmailOperationTools', () => {
     });
 
     it('returns error when no Drafts mailbox found', async () => {
-      vi.mocked(mockJmapClient.request).mockResolvedValue({
-        methodResponses: [
-          ['Identity/get', { list: [{ id: 'identity-1', email: 'test@example.com' }] }, 'getIdentity'],
-          ['Mailbox/get', { list: [{ id: 'inbox-id', role: 'inbox' }] }, 'getMailboxes'],
-        ],
+      vi.mocked(mockJmapClient.request).mockResolvedValueOnce({
+        methodResponses: [['Mailbox/get', { list: [{ id: 'inbox-id', role: 'inbox' }] }, 'getMailboxes']],
       });
       vi.mocked(mockJmapClient.parseMethodResponse)
-        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity-1', email: 'test@example.com' }] } })
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'inbox-id', role: 'inbox' }] } });
 
       const handler = registeredTools.get('create_draft')!;
@@ -462,10 +459,10 @@ describe('registerEmailOperationTools', () => {
     it('returns error when notCreated in response', async () => {
       vi.mocked(mockJmapClient.request)
         .mockResolvedValueOnce({
-          methodResponses: [
-            ['Identity/get', { list: [{ id: 'identity-1', email: 'test@example.com' }] }, 'getIdentity'],
-            ['Mailbox/get', { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] }, 'getMailboxes'],
-          ],
+          methodResponses: [['Mailbox/get', { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] }, 'getMailboxes']],
+        })
+        .mockResolvedValueOnce({
+          methodResponses: [['Identity/get', { list: [{ id: 'identity-1', email: 'test@example.com' }] }, 'getIdentity']],
         })
         .mockResolvedValueOnce({
           methodResponses: [
@@ -482,8 +479,8 @@ describe('registerEmailOperationTools', () => {
           ],
         });
       vi.mocked(mockJmapClient.parseMethodResponse)
-        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity-1', email: 'test@example.com' }] } })
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity-1', email: 'test@example.com' }] } })
         .mockReturnValueOnce({
           success: true,
           data: {

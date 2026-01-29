@@ -741,14 +741,8 @@ export function registerEmailOperationTools(
       try {
         const session = jmapClient.getSession();
 
-        // Get identity and Drafts mailbox in a single batch
-        // (some JMAP servers don't support filter by role in Mailbox/query)
-        const setupResponse = await jmapClient.request([
-          [
-            'Identity/get',
-            { accountId: session.accountId },
-            'getIdentity',
-          ],
+        // Get Drafts mailbox first (doesn't need submission capability)
+        const mailboxResponse = await jmapClient.request([
           [
             'Mailbox/get',
             {
@@ -759,26 +753,25 @@ export function registerEmailOperationTools(
           ],
         ]);
 
-        // Parse Identity response
-        const identityResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[0]);
-        if (!identityResult.success) {
-          logger.error({ error: identityResult.error }, 'JMAP error getting identity');
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: 'Failed to get identity',
-              },
-            ],
-          };
-        }
-
-        const identities = (identityResult.data as { list: Array<{ id: string; email: string; name?: string }> }).list;
-        const identity = identities?.[0];
-
         // Parse Mailbox response
-        const getResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[1]);
+        const getResult = jmapClient.parseMethodResponse(mailboxResponse.methodResponses[0]);
+
+        // Try to get identity separately (needs submission capability)
+        let identity: { id: string; email: string; name?: string } | undefined;
+        try {
+          const identityResponse = await jmapClient.request(
+            [['Identity/get', { accountId: session.accountId }, 'getIdentity']],
+            ['urn:ietf:params:jmap:core', 'urn:ietf:params:jmap:mail', 'urn:ietf:params:jmap:submission']
+          );
+          const identityResult = jmapClient.parseMethodResponse(identityResponse.methodResponses[0]);
+          if (identityResult.success) {
+            const identities = (identityResult.data as { list: Array<{ id: string; email: string; name?: string }> }).list;
+            identity = identities?.[0];
+          }
+        } catch {
+          // Identity fetch failed - draft will be created without from field
+          logger.debug('Could not fetch identity for draft - will create without from field');
+        }
         if (!getResult.success) {
           logger.error({ error: getResult.error }, 'JMAP error getting mailboxes');
           return {
