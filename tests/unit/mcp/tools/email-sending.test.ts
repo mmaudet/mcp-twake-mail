@@ -88,8 +88,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
         ],
       };
 
@@ -108,8 +107,8 @@ describe('Email Sending Tools', () => {
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         // Setup responses
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         // Send responses
         .mockReturnValueOnce({ success: true, data: { created: { email: { id: 'email-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
         .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
@@ -139,8 +138,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
         ],
       };
 
@@ -157,8 +155,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({ success: true, data: { created: { email: { id: 'email-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
         .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
 
@@ -184,8 +182,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
         ],
       };
 
@@ -202,8 +199,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({ success: true, data: { created: { email: { id: 'email-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
         .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
 
@@ -225,8 +222,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
         ],
       };
 
@@ -252,8 +248,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
         ],
       };
 
@@ -269,8 +264,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({ success: true, data: { notCreated: { email: { type: 'invalidProperties', description: 'Bad email data' } } } });
 
       registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
@@ -290,8 +285,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
         ],
       };
 
@@ -308,8 +302,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'test@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({ success: true, data: { created: { email: { id: 'email-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
         .mockReturnValueOnce({ success: true, data: { notCreated: { submission: { type: 'forbiddenFrom', description: 'Cannot send from this address' } } } });
 
@@ -343,8 +337,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
           ['Email/get', {
             list: [{
               messageId: ['<msg1@example.com>'],
@@ -369,8 +362,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({
           success: true,
           data: {
@@ -406,8 +399,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
           ['Email/get', {
             list: [{
               messageId: ['<msg1@example.com>'],
@@ -431,8 +423,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({
           success: true,
           data: { list: [{ messageId: ['<msg1@example.com>'], subject: 'Hello', from: [{ email: 'sender@example.com' }] }] },
@@ -457,8 +449,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
           ['Email/get', {
             list: [{
               messageId: ['<msg1@example.com>'],
@@ -482,8 +473,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({
           success: true,
           data: { list: [{ messageId: ['<msg1@example.com>'], subject: 'Re: Hello', from: [{ email: 'sender@example.com' }] }] },
@@ -508,8 +499,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
           ['Email/get', {
             list: [{
               messageId: ['<msg1@example.com>'],
@@ -534,8 +524,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({
           success: true,
           data: {
@@ -567,8 +557,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
           ['Email/get', {
             list: [{
               messageId: ['<msg1@example.com>'],
@@ -592,8 +581,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({
           success: true,
           data: { list: [{ messageId: ['<msg1@example.com>'], subject: 'Hello', from: [{ email: 'from@example.com' }] }] },
@@ -618,8 +607,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
           ['Email/get', {
             list: [{
               messageId: ['<msg1@example.com>'],
@@ -645,8 +633,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({
           success: true,
           data: {
@@ -690,8 +678,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'ME@EXAMPLE.COM' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
           ['Email/get', {
             list: [{
               messageId: ['<msg1@example.com>'],
@@ -717,8 +704,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'ME@EXAMPLE.COM' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({
           success: true,
           data: {
@@ -757,8 +744,7 @@ describe('Email Sending Tools', () => {
       const setupResponse = {
         methodResponses: [
           ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
-          ['Mailbox/query', { ids: ['sent-mailbox-1'] }, 'findSent'],
-          ['Mailbox/query', { ids: ['drafts-mailbox-1'] }, 'findDrafts'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
           ['Email/get', { list: [] }, 'getOriginal'],
         ],
       };
@@ -767,8 +753,8 @@ describe('Email Sending Tools', () => {
 
       (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['sent-mailbox-1'] } })
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-1'] } })
+        
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
         .mockReturnValueOnce({ success: true, data: { list: [] } });
 
       registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);

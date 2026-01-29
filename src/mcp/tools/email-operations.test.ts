@@ -387,11 +387,11 @@ describe('registerEmailOperationTools', () => {
 
   describe('create_draft', () => {
     it('creates draft in Drafts mailbox with $draft keyword', async () => {
-      // First call: find Drafts mailbox
+      // First call: get mailboxes to find Drafts
       // Second call: create draft
       vi.mocked(mockJmapClient.request)
         .mockResolvedValueOnce({
-          methodResponses: [['Mailbox/query', { ids: ['drafts-mailbox-id'] }, 'findDrafts']],
+          methodResponses: [['Mailbox/get', { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] }, 'getMailboxes']],
         })
         .mockResolvedValueOnce({
           methodResponses: [
@@ -408,7 +408,7 @@ describe('registerEmailOperationTools', () => {
           ],
         });
       vi.mocked(mockJmapClient.parseMethodResponse)
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-id'] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] } })
         .mockReturnValueOnce({
           success: true,
           data: {
@@ -436,11 +436,11 @@ describe('registerEmailOperationTools', () => {
 
     it('returns error when no Drafts mailbox found', async () => {
       vi.mocked(mockJmapClient.request).mockResolvedValue({
-        methodResponses: [['Mailbox/query', { ids: [] }, 'findDrafts']],
+        methodResponses: [['Mailbox/get', { list: [{ id: 'inbox-id', role: 'inbox' }] }, 'getMailboxes']],
       });
       vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
         success: true,
-        data: { ids: [] },
+        data: { list: [{ id: 'inbox-id', role: 'inbox' }] },
       });
 
       const handler = registeredTools.get('create_draft')!;
@@ -456,7 +456,7 @@ describe('registerEmailOperationTools', () => {
     it('returns error when notCreated in response', async () => {
       vi.mocked(mockJmapClient.request)
         .mockResolvedValueOnce({
-          methodResponses: [['Mailbox/query', { ids: ['drafts-mailbox-id'] }, 'findDrafts']],
+          methodResponses: [['Mailbox/get', { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] }, 'getMailboxes']],
         })
         .mockResolvedValueOnce({
           methodResponses: [
@@ -473,7 +473,7 @@ describe('registerEmailOperationTools', () => {
           ],
         });
       vi.mocked(mockJmapClient.parseMethodResponse)
-        .mockReturnValueOnce({ success: true, data: { ids: ['drafts-mailbox-id'] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'drafts-mailbox-id', role: 'drafts' }] } })
         .mockReturnValueOnce({
           success: true,
           data: {

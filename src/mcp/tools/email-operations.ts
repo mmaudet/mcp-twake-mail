@@ -741,34 +741,36 @@ export function registerEmailOperationTools(
       try {
         const session = jmapClient.getSession();
 
-        // Find Drafts mailbox
+        // Find Drafts mailbox by getting all mailboxes and filtering by role
+        // (some JMAP servers don't support filter by role in Mailbox/query)
         const mailboxResponse = await jmapClient.request([
           [
-            'Mailbox/query',
+            'Mailbox/get',
             {
               accountId: session.accountId,
-              filter: { role: 'drafts' },
+              properties: ['id', 'role'],
             },
-            'findDrafts',
+            'getMailboxes',
           ],
         ]);
 
-        const queryResult = jmapClient.parseMethodResponse(mailboxResponse.methodResponses[0]);
-        if (!queryResult.success) {
-          logger.error({ error: queryResult.error }, 'JMAP error finding Drafts mailbox');
+        const getResult = jmapClient.parseMethodResponse(mailboxResponse.methodResponses[0]);
+        if (!getResult.success) {
+          logger.error({ error: getResult.error }, 'JMAP error getting mailboxes');
           return {
             isError: true,
             content: [
               {
                 type: 'text' as const,
-                text: 'Failed to find Drafts mailbox',
+                text: 'Failed to get mailboxes',
               },
             ],
           };
         }
 
-        const draftsIds = (queryResult.data as { ids: string[] }).ids;
-        if (!draftsIds || draftsIds.length === 0) {
+        const mailboxes = (getResult.data as { list: Array<{ id: string; role: string | null }> }).list;
+        const draftsMailbox = mailboxes.find((mb) => mb.role === 'drafts');
+        if (!draftsMailbox) {
           logger.error({}, 'No Drafts mailbox found');
           return {
             isError: true,
@@ -781,7 +783,7 @@ export function registerEmailOperationTools(
           };
         }
 
-        const draftsMailboxId = draftsIds[0];
+        const draftsMailboxId = draftsMailbox.id;
 
         // Build email create object
         const emailCreate: Record<string, unknown> = {

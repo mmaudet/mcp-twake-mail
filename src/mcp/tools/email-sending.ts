@@ -73,19 +73,15 @@ export function registerEmailSendingTools(
       try {
         const session = jmapClient.getSession();
 
-        // Step 1: Get identity and mailbox IDs in a single batch
+        // Step 1: Get identity and mailboxes in a single batch
+        // Use Mailbox/get instead of Mailbox/query because some servers don't support filter by role
         const setupResponse = await jmapClient.request(
           [
             ['Identity/get', { accountId: session.accountId }, 'getIdentity'],
             [
-              'Mailbox/query',
-              { accountId: session.accountId, filter: { role: 'sent' } },
-              'findSent',
-            ],
-            [
-              'Mailbox/query',
-              { accountId: session.accountId, filter: { role: 'drafts' } },
-              'findDrafts',
+              'Mailbox/get',
+              { accountId: session.accountId, properties: ['id', 'role'] },
+              'getMailboxes',
             ],
           ],
           SUBMISSION_USING
@@ -121,29 +117,28 @@ export function registerEmailSendingTools(
         }
         const identity = identities[0];
 
-        // Parse Sent mailbox response
-        const sentResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[1]);
-        const sentMailboxId = sentResult.success
-          ? (sentResult.data as { ids: string[] }).ids?.[0]
-          : undefined;
-
-        // Parse Drafts mailbox response
-        const draftsResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[2]);
-        if (!draftsResult.success) {
-          logger.error({ error: draftsResult.error }, 'Failed to find Drafts mailbox');
+        // Parse Mailbox response and find Sent/Drafts by role
+        const mailboxResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[1]);
+        if (!mailboxResult.success) {
+          logger.error({ error: mailboxResult.error }, 'Failed to get mailboxes');
           return {
             isError: true,
             content: [
               {
                 type: 'text' as const,
-                text: 'No Drafts mailbox found. Cannot send email.',
+                text: 'Failed to get mailboxes. Cannot send email.',
               },
             ],
           };
         }
 
-        const draftsIds = (draftsResult.data as { ids: string[] }).ids;
-        if (!draftsIds || draftsIds.length === 0) {
+        const mailboxes = (mailboxResult.data as { list: Array<{ id: string; role: string | null }> }).list;
+        const sentMailbox = mailboxes.find((mb) => mb.role === 'sent');
+        const draftsMailbox = mailboxes.find((mb) => mb.role === 'drafts');
+
+        const sentMailboxId = sentMailbox?.id;
+
+        if (!draftsMailbox) {
           logger.error({}, 'No Drafts mailbox found');
           return {
             isError: true,
@@ -155,7 +150,7 @@ export function registerEmailSendingTools(
             ],
           };
         }
-        const draftsMailboxId = draftsIds[0];
+        const draftsMailboxId = draftsMailbox.id;
 
         // Step 2: Build bodyStructure based on body/htmlBody
         let bodyStructure: Record<string, unknown>;
@@ -403,19 +398,15 @@ export function registerEmailSendingTools(
       try {
         const session = jmapClient.getSession();
 
-        // Step 1: Get identity, mailbox IDs, and original email in a single batch
+        // Step 1: Get identity, mailboxes, and original email in a single batch
+        // Use Mailbox/get instead of Mailbox/query because some servers don't support filter by role
         const setupResponse = await jmapClient.request(
           [
             ['Identity/get', { accountId: session.accountId }, 'getIdentity'],
             [
-              'Mailbox/query',
-              { accountId: session.accountId, filter: { role: 'sent' } },
-              'findSent',
-            ],
-            [
-              'Mailbox/query',
-              { accountId: session.accountId, filter: { role: 'drafts' } },
-              'findDrafts',
+              'Mailbox/get',
+              { accountId: session.accountId, properties: ['id', 'role'] },
+              'getMailboxes',
             ],
             [
               'Email/get',
@@ -460,29 +451,28 @@ export function registerEmailSendingTools(
         }
         const identity = identities[0];
 
-        // Parse Sent mailbox response
-        const sentResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[1]);
-        const sentMailboxId = sentResult.success
-          ? (sentResult.data as { ids: string[] }).ids?.[0]
-          : undefined;
-
-        // Parse Drafts mailbox response
-        const draftsResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[2]);
-        if (!draftsResult.success) {
-          logger.error({ error: draftsResult.error }, 'Failed to find Drafts mailbox');
+        // Parse Mailbox response and find Sent/Drafts by role
+        const mailboxResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[1]);
+        if (!mailboxResult.success) {
+          logger.error({ error: mailboxResult.error }, 'Failed to get mailboxes');
           return {
             isError: true,
             content: [
               {
                 type: 'text' as const,
-                text: 'No Drafts mailbox found. Cannot send reply.',
+                text: 'Failed to get mailboxes. Cannot send reply.',
               },
             ],
           };
         }
 
-        const draftsIds = (draftsResult.data as { ids: string[] }).ids;
-        if (!draftsIds || draftsIds.length === 0) {
+        const mailboxes = (mailboxResult.data as { list: Array<{ id: string; role: string | null }> }).list;
+        const sentMailbox = mailboxes.find((mb) => mb.role === 'sent');
+        const draftsMailbox = mailboxes.find((mb) => mb.role === 'drafts');
+
+        const sentMailboxId = sentMailbox?.id;
+
+        if (!draftsMailbox) {
           logger.error({}, 'No Drafts mailbox found');
           return {
             isError: true,
@@ -494,10 +484,10 @@ export function registerEmailSendingTools(
             ],
           };
         }
-        const draftsMailboxId = draftsIds[0];
+        const draftsMailboxId = draftsMailbox.id;
 
         // Parse original email response
-        const originalResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[3]);
+        const originalResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[2]);
         if (!originalResult.success) {
           logger.error({ error: originalResult.error }, 'Failed to get original email');
           return {
