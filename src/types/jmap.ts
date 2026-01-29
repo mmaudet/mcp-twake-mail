@@ -61,3 +61,16 @@ export interface JMAPErrorResponse {
   type: string;
   description?: string;
 }
+
+/** JMAP Email/set response (RFC 8621 Section 4.3) */
+export interface EmailSetResponse {
+  accountId: string;
+  oldState: string;
+  newState: string;
+  created?: Record<string, { id: string; blobId: string; threadId: string }>;
+  updated?: Record<string, null>;
+  destroyed?: string[];
+  notCreated?: Record<string, { type: string; description?: string }>;
+  notUpdated?: Record<string, { type: string; description?: string }>;
+  notDestroyed?: Record<string, { type: string; description?: string }>;
+}
