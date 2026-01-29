@@ -48,10 +48,13 @@ Plans:
   4. Tokens are stored in ~/.mcp-twake-mail/tokens.json with 0600 permissions
   5. Access tokens auto-refresh using refresh token without user intervention
   6. Token refresh failures prompt user to re-authenticate with clear instructions
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] TBD during planning
+- [ ] 02-01-PLAN.md — Config extension for OIDC, secure token store, auth error factories
+- [ ] 02-02-PLAN.md — OIDC authorization code flow with PKCE S256
+- [ ] 02-03-PLAN.md — Token refresh with expiry buffer and mutex for concurrency
+- [ ] 02-04-PLAN.md — JMAPClient integration with token store and auto-refresh
 
 ### Phase 3: Core Read Operations
 **Goal**: AI assistant can search, read, and navigate emails and mailboxes
@@ -119,7 +122,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & JMAP Client | 2/2 | Complete | 2026-01-29 |
-| 2. Authentication System | 0/TBD | Not started | - |
+| 2. Authentication System | 0/4 | Not started | - |
 | 3. Core Read Operations | 0/TBD | Not started | - |
 | 4. Email Management Operations | 0/TBD | Not started | - |
 | 5. Email Creation & Sending | 0/TBD | Not started | - |
