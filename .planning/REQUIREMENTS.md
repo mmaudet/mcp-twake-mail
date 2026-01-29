@@ -139,6 +139,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUND-03 | Phase 1 | Pending |
 | FOUND-04 | Phase 1 | Pending |
 | FOUND-05 | Phase 1 | Pending |
+| JMAP-01 | Phase 1 | Pending |
+| JMAP-02 | Phase 1 | Pending |
+| JMAP-03 | Phase 1 | Pending |
+| JMAP-04 | Phase 1 | Pending |
+| JMAP-05 | Phase 1 | Pending |
 | AUTH-01 | Phase 2 | Pending |
 | AUTH-02 | Phase 2 | Pending |
 | AUTH-03 | Phase 2 | Pending |
@@ -146,33 +151,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-05 | Phase 2 | Pending |
 | AUTH-06 | Phase 2 | Pending |
 | AUTH-07 | Phase 2 | Pending |
-| JMAP-01 | Phase 2 | Pending |
-| JMAP-02 | Phase 2 | Pending |
-| JMAP-03 | Phase 2 | Pending |
-| JMAP-04 | Phase 2 | Pending |
-| JMAP-05 | Phase 2 | Pending |
-| EMAIL-01 | Phase 4 | Pending |
-| EMAIL-02 | Phase 4 | Pending |
 | EMAIL-03 | Phase 3 | Pending |
 | EMAIL-04 | Phase 3 | Pending |
+| EMAIL-11 | Phase 3 | Pending |
+| MBOX-01 | Phase 3 | Pending |
+| MBOX-02 | Phase 3 | Pending |
+| MCP-01 | Phase 3 | Pending |
+| MCP-02 | Phase 3 | Pending |
+| MCP-03 | Phase 3 | Pending |
+| MCP-04 | Phase 3 | Pending |
+| TRANS-01 | Phase 3 | Pending |
+| TRANS-02 | Phase 3 | Pending |
+| TRANS-03 | Phase 3 | Pending |
 | EMAIL-05 | Phase 4 | Pending |
 | EMAIL-06 | Phase 4 | Pending |
 | EMAIL-07 | Phase 4 | Pending |
 | EMAIL-08 | Phase 4 | Pending |
 | EMAIL-09 | Phase 4 | Pending |
 | EMAIL-10 | Phase 4 | Pending |
-| EMAIL-11 | Phase 3 | Pending |
 | EMAIL-12 | Phase 4 | Pending |
-| MBOX-01 | Phase 3 | Pending |
-| MBOX-02 | Phase 3 | Pending |
-| THREAD-01 | Phase 5 | Pending |
-| THREAD-02 | Phase 5 | Pending |
-| ATTACH-01 | Phase 5 | Pending |
-| ATTACH-02 | Phase 5 | Pending |
-| MCP-01 | Phase 3 | Pending |
-| MCP-02 | Phase 3 | Pending |
-| MCP-03 | Phase 3 | Pending |
-| MCP-04 | Phase 3 | Pending |
+| EMAIL-01 | Phase 5 | Pending |
+| EMAIL-02 | Phase 5 | Pending |
+| THREAD-01 | Phase 6 | Pending |
+| THREAD-02 | Phase 6 | Pending |
+| ATTACH-01 | Phase 6 | Pending |
+| ATTACH-02 | Phase 6 | Pending |
 | CLI-01 | Phase 6 | Pending |
 | CLI-02 | Phase 6 | Pending |
 | CLI-03 | Phase 6 | Pending |
@@ -184,9 +187,6 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLI-09 | Phase 6 | Pending |
 | CLI-10 | Phase 6 | Pending |
 | CLI-11 | Phase 6 | Pending |
-| TRANS-01 | Phase 3 | Pending |
-| TRANS-02 | Phase 3 | Pending |
-| TRANS-03 | Phase 3 | Pending |
 | QUAL-01 | Phase 6 | Pending |
 | QUAL-02 | Phase 6 | Pending |
 | QUAL-03 | Phase 6 | Pending |
@@ -199,4 +199,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after initial definition*
+*Last updated: 2026-01-29 after roadmap creation*
