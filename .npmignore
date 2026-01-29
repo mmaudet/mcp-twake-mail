@@ -1,0 +1,31 @@
+# Development files
+src/
+tests/
+coverage/
+.planning/
+
+# Config files
+tsconfig.json
+vitest.config.ts
+eslint.config.mjs
+
+# Test files
+*.test.ts
+*.test.js
+*.test.d.ts
+*.test.js.map
+__tests__/
+build/**/*.test.*
+build/**/__tests__/
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Misc
+*.md
+!README.md
