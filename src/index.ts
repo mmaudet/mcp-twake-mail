@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { loadConfig } from './config/schema.js';
 import { createLogger } from './config/logger.js';
+import { JMAPClient } from './jmap/client.js';
 import { formatStartupError } from './errors.js';
 
 async function main() {
@@ -15,8 +16,12 @@ async function main() {
     const logger = createLogger(config.LOG_LEVEL);
     logger.info({ version: '0.1.0' }, 'Starting mcp-twake-mail server');
 
-    // JMAP client initialization will be added in Plan 02
-    logger.info('Waiting for JMAP client implementation...');
+    // Step 3: Create and initialize JMAP client
+    const client = new JMAPClient(config, logger);
+    const session = await client.fetchSession();
+    logger.info({ accountId: session.accountId }, 'JMAP client ready');
+
+    // MCP server initialization will be added in Phase 3
   } catch (error) {
     // Format error with AI-friendly message and exit
     const errorMessage = formatStartupError(
