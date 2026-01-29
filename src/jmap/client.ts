@@ -14,6 +14,7 @@ import type {
   JMAPErrorResponse,
 } from '../types/jmap.js';
 import { JMAPError } from '../errors.js';
+import { TokenRefresher, createTokenRefresher } from '../auth/token-refresh.js';
 
 /** Extracted session data from JMAP session response */
 export interface JMAPSession {
@@ -38,17 +39,24 @@ export class JMAPClient {
   private readonly config: Config;
   private readonly logger: Logger;
   private readonly stateTracker: Map<string, string> = new Map();
+  private readonly tokenRefresher: TokenRefresher | null = null;
 
   constructor(config: Config, logger: Logger) {
     this.config = config;
     this.logger = logger;
+
+    // Initialize TokenRefresher for OIDC authentication
+    if (config.JMAP_AUTH_METHOD === 'oidc' && config.JMAP_OIDC_ISSUER && config.JMAP_OIDC_CLIENT_ID) {
+      this.tokenRefresher = createTokenRefresher(config.JMAP_OIDC_ISSUER, config.JMAP_OIDC_CLIENT_ID);
+    }
   }
 
   /**
    * Generate authentication headers based on configured auth method.
+   * For OIDC, automatically refreshes tokens if needed via TokenRefresher.
    * @returns Headers object with Authorization and Content-Type
    */
-  private getAuthHeaders(): Record<string, string> {
+  private async getAuthHeaders(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -57,9 +65,19 @@ export class JMAPClient {
       const credentials = `${this.config.JMAP_USERNAME}:${this.config.JMAP_PASSWORD}`;
       const token = Buffer.from(credentials).toString('base64');
       headers['Authorization'] = `Basic ${token}`;
+    } else if (this.config.JMAP_AUTH_METHOD === 'oidc') {
+      // OIDC: use TokenRefresher to get valid token (auto-refreshes if needed)
+      if (!this.tokenRefresher) {
+        throw new JMAPError(
+          'OIDC configuration incomplete',
+          'oidcConfigError',
+          'Ensure OIDC_ISSUER and OIDC_CLIENT_ID are configured.'
+        );
+      }
+      const tokens = await this.tokenRefresher.ensureValidToken();
+      headers['Authorization'] = `Bearer ${tokens.accessToken}`;
     } else {
-      // Both bearer and oidc use Bearer token format
-      // OIDC flow (token refresh) will be added in Phase 2
+      // Bearer: use static token from config
       headers['Authorization'] = `Bearer ${this.config.JMAP_TOKEN}`;
     }
 
@@ -79,7 +97,7 @@ export class JMAPClient {
     try {
       response = await fetch(this.config.JMAP_SESSION_URL, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: await this.getAuthHeaders(),
         signal: AbortSignal.timeout(SESSION_TIMEOUT),
       });
     } catch (error) {
@@ -162,7 +180,7 @@ export class JMAPClient {
     try {
       response = await fetch(session.apiUrl, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: await this.getAuthHeaders(),
         body: JSON.stringify(requestBody),
         signal: AbortSignal.timeout(this.config.JMAP_REQUEST_TIMEOUT),
       });
