@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 3 Complete - Core Read Operations (Email MCP Tools complete)
+**Current focus:** Phase 3 Complete - Core Read Operations (All MCP read tools implemented)
 
 ## Current Position
 
 Phase: 3 of 6 (Core Read Operations)
-Plan: 3 of 3 in phase (COMPLETE)
+Plan: 4 of 4 in phase (COMPLETE)
 Status: Phase complete
-Last activity: 2026-01-29 - Completed 03-03-PLAN.md
+Last activity: 2026-01-29 - Completed 03-04-PLAN.md
 
-Progress: [█████████░] 90% (9 of 10 plans)
+Progress: [██████████] 100% (10 of 10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 2.54 minutes
-- Total execution time: 0.38 hours
+- Total plans completed: 10
+- Average duration: 2.5 minutes
+- Total execution time: 0.42 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [█████████░] 90% (9 of 10 plans)
 |-------|-------|-------|----------|
 | 01 | 2/2 | 7m | 3.5m |
 | 02 | 4/4 | 9m 15s | 2.3m |
-| 03 | 3/3 | 7m 42s | 2.6m |
+| 03 | 4/4 | 10m | 2.5m |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (2m 38s), 02-04 (2m 14s), 03-01 (3m 49s), 03-02 (1m 22s), 03-03 (2m 31s)
+- Last 5 plans: 02-04 (2m 14s), 03-01 (3m 49s), 03-02 (1m 22s), 03-03 (2m 31s), 03-04 (2m 18s)
 - Trend: Steady velocity, non-TDD plans faster
 
 *Updated after each plan completion*
@@ -74,6 +74,7 @@ Recent decisions affecting current work:
 - 03-03: JMAP back-reference pattern for search_emails (query+get in single request)
 - 03-03: Separate FULL_EMAIL_PROPERTIES vs SUMMARY_EMAIL_PROPERTIES lists
 - 03-03: Common EMAIL_READ_ANNOTATIONS constant for all email tools
+- 03-04: Client-side role filtering after Mailbox/get (JMAP doesn't support server-side mailbox filtering)
 
 ### Pending Todos
 
@@ -85,8 +86,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T18:39:54Z
-Stopped at: Completed 03-03-PLAN.md (Email MCP Tools)
+Last session: 2026-01-29T18:39:49Z
+Stopped at: Completed 03-04-PLAN.md (Mailbox MCP Tools)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -144,6 +145,12 @@ Plan 03-03 (Email MCP Tools) complete with:
 - get_email_labels tool returning mailbox IDs (EMAIL-11)
 - registerAllTools() aggregator for tool registration
 - All tools use MCP annotations (readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true)
+
+Plan 03-04 (Mailbox MCP Tools) complete with:
+- get_mailbox tool for retrieving mailbox by ID (MBOX-01)
+- list_mailboxes tool with role filtering (MBOX-02)
+- Zod input validation for all tools
+- transformMailbox() for response formatting
 - 176 tests passing
 
 **Phase 3 Deliverables:**
