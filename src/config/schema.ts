@@ -27,8 +27,10 @@ export const envSchema = z
       .optional(),
     JMAP_OIDC_CLIENT_ID: z.string().optional(),
     JMAP_OIDC_SCOPE: z.string().default('openid email offline_access'),
-    // Fixed redirect URI for OIDC - must be registered with the provider
+    // Redirect URI for OIDC - must be registered with the provider
     JMAP_OIDC_REDIRECT_URI: z.string().url().default('http://localhost:3000/callback'),
+    // Local port for callback server (when using ngrok/tunnels, this is the local port)
+    JMAP_OIDC_CALLBACK_PORT: z.coerce.number().default(3000),
     JMAP_REQUEST_TIMEOUT: z.coerce.number().default(30000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   })
