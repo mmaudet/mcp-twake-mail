@@ -74,3 +74,24 @@ export interface EmailSetResponse {
   notUpdated?: Record<string, { type: string; description?: string }>;
   notDestroyed?: Record<string, { type: string; description?: string }>;
 }
+
+/** JMAP Identity for email sending (RFC 8621 Section 6) */
+export interface Identity {
+  id: string;
+  name: string;
+  email: string;
+  replyTo?: Array<{ name?: string; email: string }> | null;
+  bcc?: Array<{ name?: string; email: string }> | null;
+  textSignature?: string;
+  htmlSignature?: string;
+  mayDelete: boolean;
+}
+
+/** JMAP EmailSubmission/set response (RFC 8621 Section 7.5) */
+export interface EmailSubmissionSetResponse {
+  accountId: string;
+  oldState: string | null;
+  newState: string;
+  created?: Record<string, { id: string }>;
+  notCreated?: Record<string, { type: string; description?: string }>;
+}
