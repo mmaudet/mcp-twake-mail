@@ -298,6 +298,90 @@ describe('oidc-flow', () => {
         expiresAt: undefined,
       });
     });
+
+    it('uses port 3000 for ngrok URLs (remote without explicit port)', async () => {
+      const mockConfig = { serverMetadata: () => ({}) };
+      mockDiscovery.mockResolvedValue(mockConfig);
+
+      mockGetAuthCode.mockResolvedValue({
+        code: 'authorization-code',
+        params: { state: 'test-state' },
+      });
+
+      mockAuthorizationCodeGrant.mockResolvedValue({
+        access_token: 'access-token',
+        expires_in: 3600,
+      });
+
+      // Use ngrok URL without explicit port
+      await performOIDCFlow({
+        ...defaultOptions,
+        redirectUri: 'https://pretty-vaguely-beagle.ngrok-free.app/callback',
+      });
+
+      // Should use default port 3000 for remote URLs
+      expect(mockGetAuthCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          port: 3000,
+        })
+      );
+    });
+
+    it('uses explicit port from localhost URL', async () => {
+      const mockConfig = { serverMetadata: () => ({}) };
+      mockDiscovery.mockResolvedValue(mockConfig);
+
+      mockGetAuthCode.mockResolvedValue({
+        code: 'authorization-code',
+        params: { state: 'test-state' },
+      });
+
+      mockAuthorizationCodeGrant.mockResolvedValue({
+        access_token: 'access-token',
+        expires_in: 3600,
+      });
+
+      // Use localhost URL with explicit port
+      await performOIDCFlow({
+        ...defaultOptions,
+        redirectUri: 'http://localhost:8080/callback',
+      });
+
+      // Should use explicit port
+      expect(mockGetAuthCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          port: 8080,
+        })
+      );
+    });
+
+    it('uses port 80 for localhost http URL without explicit port', async () => {
+      const mockConfig = { serverMetadata: () => ({}) };
+      mockDiscovery.mockResolvedValue(mockConfig);
+
+      mockGetAuthCode.mockResolvedValue({
+        code: 'authorization-code',
+        params: { state: 'test-state' },
+      });
+
+      mockAuthorizationCodeGrant.mockResolvedValue({
+        access_token: 'access-token',
+        expires_in: 3600,
+      });
+
+      // Use localhost URL without explicit port
+      await performOIDCFlow({
+        ...defaultOptions,
+        redirectUri: 'http://localhost/callback',
+      });
+
+      // Should use protocol default port 80
+      expect(mockGetAuthCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          port: 80,
+        })
+      );
+    });
   });
 
   describe('getOIDCOptionsFromConfig', () => {

@@ -39,11 +39,22 @@ export async function performOIDCFlow(options: OIDCFlowOptions): Promise<StoredT
   const { issuerUrl, clientId, scope, redirectUri } = options;
 
   // Extract port from redirect URI for local callback server
-  // For remote URIs (ngrok), default to port 80/443 equivalent on localhost
+  // For remote URIs (ngrok), use default port 3000 since we can't listen on 80/443
   const redirectUrl = new URL(redirectUri);
-  const callbackPort = redirectUrl.port
-    ? parseInt(redirectUrl.port, 10)
-    : (redirectUrl.protocol === 'https:' ? 443 : 80);
+  const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(redirectUrl.hostname);
+
+  let callbackPort: number;
+  if (redirectUrl.port) {
+    // Explicit port in URI - use it
+    callbackPort = parseInt(redirectUrl.port, 10);
+  } else if (isLocalhost) {
+    // Localhost without explicit port - use protocol default
+    callbackPort = redirectUrl.protocol === 'https:' ? 443 : 80;
+  } else {
+    // Remote URL (ngrok, etc.) without explicit port - use default 3000
+    // ngrok will forward from the remote URL to localhost:3000
+    callbackPort = 3000;
+  }
 
   // Step 1: OIDC Discovery
   let config: client.Configuration;
