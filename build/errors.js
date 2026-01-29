@@ -51,6 +51,37 @@ export class JMAPError extends Error {
     static timeout(operation) {
         return new JMAPError(`${operation} timed out`, 'timeout', 'The operation took too long. Check your network connection and try again. If the issue persists, increase JMAP_REQUEST_TIMEOUT.');
     }
+    /**
+     * Create a JMAPError for expired access token
+     */
+    static tokenExpired(refreshAvailable) {
+        if (refreshAvailable) {
+            return new JMAPError('Access token expired. Will attempt automatic refresh.', 'tokenExpired', 'The access token has expired. Automatic refresh will be attempted.');
+        }
+        return new JMAPError('Access token expired and no refresh token available. Re-authenticate using: npx mcp-twake-mail auth', 'tokenExpired', 'Your session has expired. Re-authenticate using: npx mcp-twake-mail auth');
+    }
+    /**
+     * Create a JMAPError for failed token refresh
+     */
+    static refreshFailed(reason) {
+        const message = reason ? `Token refresh failed: ${reason}` : 'Token refresh failed';
+        return new JMAPError(message, 'refreshFailed', 'Your session has expired. Re-authenticate using: npx mcp-twake-mail auth');
+    }
+    /**
+     * Create a JMAPError for OIDC flow errors
+     */
+    static oidcFlowError(stage, details) {
+        const message = details
+            ? `OIDC authentication failed at ${stage}: ${details}`
+            : `OIDC authentication failed at ${stage}`;
+        return new JMAPError(message, 'oidcError', 'Check your OIDC provider configuration. Verify JMAP_OIDC_ISSUER is correct and the provider supports PKCE.');
+    }
+    /**
+     * Create a JMAPError for missing stored tokens
+     */
+    static noStoredTokens() {
+        return new JMAPError('No stored authentication tokens found', 'noStoredTokens', 'Authenticate first using: npx mcp-twake-mail auth');
+    }
 }
 export function formatStartupError(error, sessionUrl) {
     // Handle Zod validation errors
@@ -66,9 +97,31 @@ export function formatStartupError(error, sessionUrl) {
             'Fix: Check your environment variables.',
             'For basic auth: JMAP_SESSION_URL, JMAP_USERNAME, JMAP_PASSWORD',
             'For bearer auth: JMAP_SESSION_URL, JMAP_AUTH_METHOD=bearer, JMAP_TOKEN',
+            'For OIDC auth: JMAP_SESSION_URL, JMAP_AUTH_METHOD=oidc, JMAP_OIDC_ISSUER, JMAP_OIDC_CLIENT_ID',
         ].join('\n');
     }
     const message = error.message.toLowerCase();
+    // Token expiration errors
+    if (message.includes('token') && message.includes('expired')) {
+        return [
+            'Authentication token has expired.',
+            '',
+            'Fix: Re-authenticate using: npx mcp-twake-mail auth',
+        ].join('\n');
+    }
+    // OIDC/OAuth errors
+    if (message.includes('oidc') || message.includes('oauth')) {
+        return [
+            'OIDC authentication error.',
+            '',
+            'Fix: Check your OIDC configuration:',
+            '- Verify JMAP_OIDC_ISSUER is correct and accessible',
+            '- Verify JMAP_OIDC_CLIENT_ID is valid',
+            '- Ensure the OIDC provider supports PKCE',
+            '',
+            'Try re-authenticating: npx mcp-twake-mail auth',
+        ].join('\n');
+    }
     // Authentication failures
     if (message.includes('401') || message.includes('unauthorized')) {
         return [
@@ -77,6 +130,7 @@ export function formatStartupError(error, sessionUrl) {
             'Fix: Verify your credentials are correct.',
             'If using basic auth: check JMAP_USERNAME and JMAP_PASSWORD.',
             'If using bearer: check JMAP_TOKEN is valid and not expired.',
+            'If using OIDC: try re-authenticating with npx mcp-twake-mail auth',
         ].join('\n');
     }
     // Timeout errors

@@ -14,5 +14,21 @@ export declare class JMAPError extends Error {
      * Create a JMAPError for timeout errors
      */
     static timeout(operation: string): JMAPError;
+    /**
+     * Create a JMAPError for expired access token
+     */
+    static tokenExpired(refreshAvailable: boolean): JMAPError;
+    /**
+     * Create a JMAPError for failed token refresh
+     */
+    static refreshFailed(reason?: string): JMAPError;
+    /**
+     * Create a JMAPError for OIDC flow errors
+     */
+    static oidcFlowError(stage: string, details?: string): JMAPError;
+    /**
+     * Create a JMAPError for missing stored tokens
+     */
+    static noStoredTokens(): JMAPError;
 }
 export declare function formatStartupError(error: Error, sessionUrl?: string): string;
