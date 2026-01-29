@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * MCP server entry point.
- * Starts the MCP server with JMAP validation.
+ * Entry point for mcp-twake-mail.
+ * Routes to CLI commands or MCP server based on arguments.
  */
-import { startServer } from './mcp/server.js';
+import { runCLI } from './cli/index.js';
 
-startServer().catch((error) => {
-  // Log to stderr (NEVER stdout - reserved for MCP JSON-RPC)
+runCLI().catch((error) => {
+  // Log to stderr (NEVER stdout - may be reserved for MCP JSON-RPC)
   process.stderr.write(`Fatal error: ${error instanceof Error ? error.message : String(error)}\n`);
   process.exit(1);
 });
