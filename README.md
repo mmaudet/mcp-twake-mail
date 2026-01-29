@@ -72,6 +72,73 @@ npm install
 npm run build
 ```
 
+## Quick Setup (Recommended)
+
+The easiest way to configure mcp-twake-mail is to use the interactive setup wizard:
+
+```bash
+npx mcp-twake-mail setup
+```
+
+The wizard will:
+1. Ask for your JMAP server session URL
+2. Ask for your authentication method (Basic, Bearer, or OIDC)
+3. Collect the required credentials
+4. Test the connection to your JMAP server
+5. Generate and optionally write the configuration to your Claude Desktop config file
+
+Example session:
+```
+=== MCP Twake Mail Setup Wizard ===
+
+JMAP Session URL: https://jmap.example.com/jmap/session
+
+Authentication method:
+  1. Basic (username/password)
+  2. Bearer token (JWT)
+  3. OIDC (OpenID Connect)
+Choose [1-3]: 1
+
+Username: user@example.com
+Password: ********
+
+Testing connection...
+Connected! Account ID: abc123
+
+Server name for Claude config [twake-mail]: twake-mail
+
+--- Generated Claude Desktop Config ---
+{
+  "mcpServers": {
+    "twake-mail": {
+      "command": "npx",
+      "args": ["-y", "mcp-twake-mail"],
+      "env": {
+        "JMAP_SESSION_URL": "https://jmap.example.com/jmap/session",
+        "JMAP_AUTH_METHOD": "basic",
+        "JMAP_USERNAME": "user@example.com",
+        "JMAP_PASSWORD": "********"
+      }
+    }
+  }
+}
+---------------------------------------
+
+Write to Claude Desktop config? [Y/n]: y
+
+Config written successfully!
+Restart Claude Desktop to load the new configuration.
+```
+
+### CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `mcp-twake-mail` | Start MCP server (default) |
+| `mcp-twake-mail setup` | Interactive configuration wizard |
+| `mcp-twake-mail auth` | Re-run OIDC authentication flow |
+| `mcp-twake-mail check` | Verify configuration and test connection |
+
 ## Configuration
 
 ### Environment Variables
