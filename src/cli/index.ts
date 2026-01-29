@@ -39,16 +39,16 @@ export function createCLI(): Command {
     .command('auth')
     .description('Re-run OIDC authentication')
     .action(async () => {
-      console.error('Auth command not yet implemented');
-      process.exit(1);
+      const { runAuth } = await import('./commands/auth.js');
+      await runAuth();
     });
 
   program
     .command('check')
     .description('Verify configuration and test connection')
     .action(async () => {
-      console.error('Check command not yet implemented');
-      process.exit(1);
+      const { runCheck } = await import('./commands/check.js');
+      await runCheck();
     });
 
   return program;
