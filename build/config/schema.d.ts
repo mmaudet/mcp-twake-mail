@@ -9,6 +9,10 @@ export declare const envSchema: z.ZodObject<{
     JMAP_USERNAME: z.ZodOptional<z.ZodString>;
     JMAP_PASSWORD: z.ZodOptional<z.ZodString>;
     JMAP_TOKEN: z.ZodOptional<z.ZodString>;
+    JMAP_OIDC_ISSUER: z.ZodOptional<z.ZodString>;
+    JMAP_OIDC_CLIENT_ID: z.ZodOptional<z.ZodString>;
+    JMAP_OIDC_SCOPE: z.ZodDefault<z.ZodString>;
+    JMAP_OIDC_REDIRECT_PORT: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     JMAP_REQUEST_TIMEOUT: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     LOG_LEVEL: z.ZodDefault<z.ZodEnum<{
         error: "error";
