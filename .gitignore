@@ -11,6 +11,9 @@ coverage/
 # IDE
 .idea/
 .vscode/
+
+# Planning
+.planning/
 *.swp
 *.swo
 
