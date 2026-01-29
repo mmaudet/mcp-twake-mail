@@ -66,10 +66,13 @@ Plans:
   3. AI assistant can retrieve specific email by ID with full content
   4. AI assistant can list all mailboxes with metadata (name, role, message counts)
   5. Email and mailbox data transforms JMAP objects to simplified DTOs with boolean flags ($seen → isRead)
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] TBD during planning
+- [ ] 03-01-PLAN.md — DTO types and transformers for Email/Mailbox with TDD
+- [ ] 03-02-PLAN.md — MCP server foundation with JMAP validation at startup
+- [ ] 03-03-PLAN.md — Email tools: get_email, search_emails, get_email_labels
+- [ ] 03-04-PLAN.md — Mailbox tools: get_mailbox, list_mailboxes
 
 ### Phase 4: Email Management Operations
 **Goal**: AI assistant can mark, delete, move, and label emails
@@ -123,7 +126,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Foundation & JMAP Client | 2/2 | Complete | 2026-01-29 |
 | 2. Authentication System | 4/4 | Complete | 2026-01-29 |
-| 3. Core Read Operations | 0/TBD | Not started | - |
+| 3. Core Read Operations | 0/4 | Not started | - |
 | 4. Email Management Operations | 0/TBD | Not started | - |
 | 5. Email Creation & Sending | 0/TBD | Not started | - |
 | 6. Advanced Features & Polish | 0/TBD | Not started | - |
