@@ -8,7 +8,7 @@ import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { JMAPClient } from '../../jmap/client.js';
 import type { Logger } from '../../config/logger.js';
 import { transformMailbox } from '../../transformers/mailbox.js';
-import type { SimplifiedMailbox, MailboxRole } from '../../types/dto.js';
+import type { SimplifiedMailbox } from '../../types/dto.js';
 
 /** Properties to fetch for mailbox operations */
 const MAILBOX_PROPERTIES = [
@@ -23,19 +23,6 @@ const MAILBOX_PROPERTIES = [
   'unreadThreads',
   'myRights',
   'isSubscribed',
-];
-
-/** Valid mailbox roles for filtering */
-const VALID_ROLES: MailboxRole[] = [
-  'inbox',
-  'drafts',
-  'sent',
-  'trash',
-  'archive',
-  'junk',
-  'important',
-  'all',
-  'subscribed',
 ];
 
 /** Common tool annotations for read-only mailbox operations */

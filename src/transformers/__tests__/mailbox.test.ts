@@ -4,7 +4,6 @@
  */
 import { describe, it, expect } from 'vitest';
 import { transformMailbox } from '../mailbox.js';
-import type { SimplifiedMailbox } from '../../types/dto.js';
 
 describe('transformMailbox', () => {
   describe('core fields', () => {

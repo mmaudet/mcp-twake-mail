@@ -4,7 +4,6 @@
  */
 import { describe, it, expect } from 'vitest';
 import { transformEmail } from '../email.js';
-import type { SimplifiedEmail } from '../../types/dto.js';
 
 describe('transformEmail', () => {
   describe('keyword mapping', () => {
