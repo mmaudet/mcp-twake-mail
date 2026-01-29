@@ -96,6 +96,8 @@ Recent decisions affecting current work:
 - 06-03: Commander.js for CLI routing (well-maintained, TypeScript support)
 - 06-03: Default action (no args) starts MCP server for backwards compatibility
 - 06-03: Placeholder subcommands exit with code 1 until implemented
+- 06-01: Thread/get then Email/get two-step pattern for get_thread_emails
+- 06-01: Map-based lookup to preserve emailIds order (oldest-first)
 
 ### Pending Todos
 
@@ -107,8 +109,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T19:47:36Z
-Stopped at: Completed 06-02-PLAN.md (Attachment MCP Tool)
+Last session: 2026-01-29T19:48:06Z
+Stopped at: Completed 06-01-PLAN.md (Thread MCP Tools)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -239,10 +241,12 @@ Plan 05-02 (Reply Email Tool) complete with:
 ## Phase 6 Summary (IN PROGRESS)
 
 Plan 06-01 (Thread Tools) complete with:
-- get_thread tool to retrieve thread by ID with emailIds
-- get_thread_emails tool to retrieve all emails in a thread
+- get_thread tool to retrieve thread by ID with emailIds (THREAD-01)
+- get_thread_emails tool to retrieve all emails in a thread (THREAD-02)
 - THREAD_READ_ANNOTATIONS constant for read-only hints
 - Two-step pattern: Thread/get then Email/get for full content
+- Order preservation: emails returned oldest-first per RFC 8621
+- 12 new tests, 290 total tests passing
 
 Plan 06-02 (Attachment Tools) complete with:
 - get_attachments tool to list email attachment metadata (ATTACH-01, ATTACH-02)
