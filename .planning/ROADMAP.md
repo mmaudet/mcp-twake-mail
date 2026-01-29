@@ -98,10 +98,11 @@ Plans:
   1. AI assistant can send new email with to, cc, bcc, subject, plain text body, and HTML body
   2. AI assistant can reply to email with proper threading headers (In-Reply-To, References)
   3. Sent emails appear in Sent mailbox and maintain thread relationships
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD during planning
+- [ ] 05-01-PLAN.md — send_email tool with Identity/get, two-phase sending, multipart body support
+- [ ] 05-02-PLAN.md — reply_email tool with threading headers and recipient handling
 
 ### Phase 6: Advanced Features & Polish
 **Goal**: Full feature set with threads, attachments, CLI wizard, and quality validation
@@ -121,7 +122,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -129,5 +130,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Authentication System | 4/4 | Complete | 2026-01-29 |
 | 3. Core Read Operations | 4/4 | Complete | 2026-01-29 |
 | 4. Email Management Operations | 2/2 | Complete | 2026-01-29 |
-| 5. Email Creation & Sending | 0/TBD | Not started | - |
+| 5. Email Creation & Sending | 0/2 | Not started | - |
 | 6. Advanced Features & Polish | 0/TBD | Not started | - |
