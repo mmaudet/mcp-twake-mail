@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 5 In Progress - Email Creation & Sending
+**Current focus:** Phase 5 COMPLETE - Email Creation & Sending
 
 ## Current Position
 
 Phase: 5 of 6 (Email Creation & Sending)
-Plan: 1 of 2 in phase
-Status: In progress
-Last activity: 2026-01-29 - Completed 05-01-PLAN.md
+Plan: 2 of 2 in phase
+Status: Phase complete
+Last activity: 2026-01-29 - Completed 05-02-PLAN.md
 
-Progress: [█████████████░] 93% (13 of 14 plans)
+Progress: [██████████████] 100% (14 of 14 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
-- Average duration: 2.5 minutes
-- Total execution time: 0.54 hours
+- Total plans completed: 14
+- Average duration: 2.6 minutes
+- Total execution time: 0.61 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [█████████████░] 93% (13 of 14 plans)
 | 02 | 4/4 | 9m 15s | 2.3m |
 | 03 | 4/4 | 10m | 2.5m |
 | 04 | 2/2 | 5m 35s | 2.8m |
-| 05 | 1/2 | 2m | 2.0m |
+| 05 | 2/2 | 6m | 3.0m |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (2m 31s), 03-04 (2m 18s), 04-01 (2m 25s), 04-02 (3m 10s), 05-01 (2m)
+- Last 5 plans: 03-04 (2m 18s), 04-01 (2m 25s), 04-02 (3m 10s), 05-01 (2m), 05-02 (4m)
 - Trend: Steady velocity, consistent execution times
 
 *Updated after each plan completion*
@@ -87,6 +87,10 @@ Recent decisions affecting current work:
 - 05-01: Two-phase sending pattern (Email/set create + EmailSubmission/set)
 - 05-01: First Identity from Identity/get used for sending
 - 05-01: Multipart/alternative bodyStructure when both text and HTML provided
+- 05-02: inReplyTo and references as string arrays per RFC 8621
+- 05-02: Case-insensitive Re: prefix check to avoid duplication
+- 05-02: Self excluded from replyAll using case-insensitive email comparison
+- 05-02: Primary recipient from replyTo if available, fallback to from
 
 ### Pending Todos
 
@@ -98,8 +102,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T19:12:56Z
-Stopped at: Completed 05-01-PLAN.md (Send Email Tool)
+Last session: 2026-01-29T19:18:43Z
+Stopped at: Completed 05-02-PLAN.md (Reply Email Tool)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -198,7 +202,7 @@ Plan 04-02 (Move, Label, and Draft Operations) complete with:
 - 7 email operation tools with proper MCP annotations
 - 193 total tests passing
 
-## Phase 5 Summary (IN PROGRESS)
+## Phase 5 Summary (COMPLETE)
 
 Plan 05-01 (Send Email Tool) complete with:
 - Identity type for RFC 8621 Section 6 (Identity/get responses)
@@ -210,4 +214,19 @@ Plan 05-01 (Send Email Tool) complete with:
 - urn:ietf:params:jmap:submission capability included
 - 210 total tests passing (no regressions)
 
-Next: Plan 05-02 (Reply Email Tool)
+Plan 05-02 (Reply Email Tool) complete with:
+- reply_email tool with proper threading headers (inReplyTo, references)
+- Threading headers as arrays per RFC 8621
+- Subject handling preserves or adds "Re:" prefix (case-insensitive)
+- replyAll parameter includes all original recipients except self
+- Case-insensitive email comparison for self-exclusion
+- 16 new unit tests for send_email and reply_email
+- 226 total tests passing (no regressions)
+
+**Phase 5 Deliverables:**
+- send_email tool for composing and sending new emails (EMAIL-01)
+- reply_email tool for replying with proper threading (EMAIL-02)
+- Two-phase JMAP sending pattern (Email/set + EmailSubmission/set)
+- Support for plain text and HTML body content
+- Automatic Drafts-to-Sent mailbox transition on send
+- 226 tests covering all components
