@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 5 COMPLETE - Email Creation & Sending
+**Current focus:** Phase 6 - Advanced Features & Polish
 
 ## Current Position
 
-Phase: 5 of 6 (Email Creation & Sending)
-Plan: 2 of 2 in phase
-Status: Phase complete
-Last activity: 2026-01-29 - Completed 05-02-PLAN.md
+Phase: 6 of 6 (Advanced Features & Polish)
+Plan: 3 of 6 in phase
+Status: In progress
+Last activity: 2026-01-29 - Completed 06-03-PLAN.md
 
-Progress: [██████████████] 100% (14 of 14 plans)
+Progress: [██████████████████░░] 85% (17 of 20 plans)
 
 ## Performance Metrics
 
@@ -34,7 +34,7 @@ Progress: [██████████████] 100% (14 of 14 plans)
 | 05 | 2/2 | 6m | 3.0m |
 
 **Recent Trend:**
-- Last 5 plans: 03-04 (2m 18s), 04-01 (2m 25s), 04-02 (3m 10s), 05-01 (2m), 05-02 (4m)
+- Last 5 plans: 04-02 (3m 10s), 05-01 (2m), 05-02 (4m), 06-01 (2m), 06-03 (2m)
 - Trend: Steady velocity, consistent execution times
 
 *Updated after each plan completion*
@@ -91,6 +91,9 @@ Recent decisions affecting current work:
 - 05-02: Case-insensitive Re: prefix check to avoid duplication
 - 05-02: Self excluded from replyAll using case-insensitive email comparison
 - 05-02: Primary recipient from replyTo if available, fallback to from
+- 06-03: Commander.js for CLI routing (well-maintained, TypeScript support)
+- 06-03: Default action (no args) starts MCP server for backwards compatibility
+- 06-03: Placeholder subcommands exit with code 1 until implemented
 
 ### Pending Todos
 
@@ -102,8 +105,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T19:18:43Z
-Stopped at: Completed 05-02-PLAN.md (Reply Email Tool)
+Last session: 2026-01-29T19:47:09Z
+Stopped at: Completed 06-03-PLAN.md (CLI Foundation)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -230,3 +233,22 @@ Plan 05-02 (Reply Email Tool) complete with:
 - Support for plain text and HTML body content
 - Automatic Drafts-to-Sent mailbox transition on send
 - 226 tests covering all components
+
+## Phase 6 Summary (IN PROGRESS)
+
+Plan 06-01 (Thread Tools) complete with:
+- get_thread tool to retrieve thread by ID with emailIds
+- get_thread_emails tool to retrieve all emails in a thread
+- THREAD_READ_ANNOTATIONS constant for read-only hints
+- Two-step pattern: Thread/get then Email/get for full content
+
+Plan 06-02 (Attachment Tools) complete with:
+- get_attachments tool to list email attachments
+- Attachment metadata: blobId, name, type, size
+
+Plan 06-03 (CLI Foundation) complete with:
+- Commander.js CLI entry point
+- Version and help commands working
+- Placeholder subcommands (setup, auth, check)
+- Entry point routes through CLI, default starts MCP server
+- 226 tests passing (no regressions)
