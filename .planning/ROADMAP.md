@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & JMAP Client** - TypeScript setup, JMAP client with session management and state tracking
 - [x] **Phase 2: Authentication System** - Basic, Bearer, and OIDC authentication with secure token storage
-- [ ] **Phase 3: Core Read Operations** - MCP server with read-only email and mailbox tools
+- [x] **Phase 3: Core Read Operations** - MCP server with read-only email and mailbox tools
 - [ ] **Phase 4: Email Management Operations** - Write operations for marking, deleting, moving, and labeling emails
 - [ ] **Phase 5: Email Creation & Sending** - Send, reply, and draft creation capabilities
 - [ ] **Phase 6: Advanced Features & Polish** - Threads, attachments, CLI commands, and quality gates
@@ -69,10 +69,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — DTO types and transformers for Email/Mailbox with TDD
-- [ ] 03-02-PLAN.md — MCP server foundation with JMAP validation at startup
-- [ ] 03-03-PLAN.md — Email tools: get_email, search_emails, get_email_labels
-- [ ] 03-04-PLAN.md — Mailbox tools: get_mailbox, list_mailboxes
+- [x] 03-01-PLAN.md — DTO types and transformers for Email/Mailbox with TDD
+- [x] 03-02-PLAN.md — MCP server foundation with JMAP validation at startup
+- [x] 03-03-PLAN.md — Email tools: get_email, search_emails, get_email_labels
+- [x] 03-04-PLAN.md — Mailbox tools: get_mailbox, list_mailboxes
 
 ### Phase 4: Email Management Operations
 **Goal**: AI assistant can mark, delete, move, and label emails
@@ -126,7 +126,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Foundation & JMAP Client | 2/2 | Complete | 2026-01-29 |
 | 2. Authentication System | 4/4 | Complete | 2026-01-29 |
-| 3. Core Read Operations | 0/4 | Not started | - |
+| 3. Core Read Operations | 4/4 | Complete | 2026-01-29 |
 | 4. Email Management Operations | 0/TBD | Not started | - |
 | 5. Email Creation & Sending | 0/TBD | Not started | - |
 | 6. Advanced Features & Polish | 0/TBD | Not started | - |
