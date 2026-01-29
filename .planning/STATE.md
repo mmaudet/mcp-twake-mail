@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 3 In Progress - Core Read Operations (Email/Mailbox Transformers complete)
+**Current focus:** Phase 3 In Progress - Core Read Operations (MCP Server Foundation complete)
 
 ## Current Position
 
 Phase: 3 of 6 (Core Read Operations)
-Plan: 1 of 3 in phase
+Plan: 2 of 3 in phase
 Status: In progress
-Last activity: 2026-01-29 - Completed 03-01-PLAN.md
+Last activity: 2026-01-29 - Completed 03-02-PLAN.md
 
-Progress: [███████░░░] 70% (7 of 10 plans)
+Progress: [████████░░] 80% (8 of 10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 2.75 minutes
-- Total execution time: 0.32 hours
+- Total plans completed: 8
+- Average duration: 2.58 minutes
+- Total execution time: 0.34 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [███████░░░] 70% (7 of 10 plans)
 |-------|-------|-------|----------|
 | 01 | 2/2 | 7m | 3.5m |
 | 02 | 4/4 | 9m 15s | 2.3m |
-| 03 | 1/3 | 3m 49s | 3.8m |
+| 03 | 2/3 | 5m 11s | 2.6m |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (2m 38s), 02-03 (1m 45s), 02-02 (2m 38s), 02-04 (2m 14s), 03-01 (3m 49s)
-- Trend: Steady velocity, TDD plan slightly longer due to RED-GREEN-REFACTOR cycle
+- Last 5 plans: 02-03 (1m 45s), 02-02 (2m 38s), 02-04 (2m 14s), 03-01 (3m 49s), 03-02 (1m 22s)
+- Trend: Steady velocity, non-TDD plans faster
 
 *Updated after each plan completion*
 
@@ -67,6 +67,9 @@ Recent decisions affecting current work:
 - 03-01: Separate JMAPEmail interface in transformer (not reusing jmap.ts)
 - 03-01: Unknown mailbox roles treated as null (defensive)
 - 03-01: Body content extraction uses first body part only (simplified)
+- 03-02: JMAP validation before MCP connect (ensures valid session before requests)
+- 03-02: Server version hardcoded (0.1.0) matching package.json
+- 03-02: Minimal entry point - all startup logic in server.ts
 
 ### Pending Todos
 
@@ -78,8 +81,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T18:31:52Z
-Stopped at: Completed 03-01-PLAN.md (Email and Mailbox Transformers)
+Last session: 2026-01-29T18:35:43Z
+Stopped at: Completed 03-02-PLAN.md (MCP Server Foundation)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -125,4 +128,10 @@ Plan 03-01 (Email and Mailbox Transformers) complete with:
 - transformMailbox() with role validation
 - 42 new tests (134 total passing)
 
-Next: Plan 03-02 (list-mailboxes MCP tool)
+Plan 03-02 (MCP Server Foundation) complete with:
+- createMCPServer() function returning { server, jmapClient }
+- startServer() with JMAP validation before MCP connect
+- StdioServerTransport for stdio communication
+- Fail-fast error handling with exit code 1
+
+Next: Plan 03-03 (list-mailboxes MCP tool)
