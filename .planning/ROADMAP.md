@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Core Read Operations** - MCP server with read-only email and mailbox tools
 - [x] **Phase 4: Email Management Operations** - Write operations for marking, deleting, moving, and labeling emails
 - [x] **Phase 5: Email Creation & Sending** - Send, reply, and draft creation capabilities
-- [ ] **Phase 6: Advanced Features & Polish** - Threads, attachments, CLI commands, and quality gates
+- [x] **Phase 6: Advanced Features & Polish** - Threads, attachments, CLI commands, and quality gates
 
 ## Phase Details
 
@@ -114,10 +114,15 @@ Plans:
   3. User can run `npx mcp-twake-mail setup` to configure connection via interactive wizard
   4. Setup wizard tests connection, generates Claude Desktop config JSON, and offers to write it
   5. Package installs via `npx mcp-twake-mail` without errors and passes quality gates (80%+ test coverage, no TypeScript/ESLint errors, <2s response time)
-**Plans**: TBD
+**Plans**: 6 plans
 
 Plans:
-- [ ] TBD during planning
+- [x] 06-01-PLAN.md — Thread tools (get_thread, get_thread_emails) using JMAP Thread/get
+- [x] 06-02-PLAN.md — Attachment tool (get_attachments) with isInline detection and filtering
+- [x] 06-03-PLAN.md — CLI foundation with Commander.js, version/help commands
+- [x] 06-04-PLAN.md — Setup wizard with @inquirer/prompts, config generation
+- [x] 06-05-PLAN.md — Auth and check CLI commands for OIDC re-auth and verification
+- [x] 06-06-PLAN.md — Quality gates (ESLint, coverage thresholds, package validation)
 
 ## Progress
 
@@ -131,4 +136,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Core Read Operations | 4/4 | Complete | 2026-01-29 |
 | 4. Email Management Operations | 2/2 | Complete | 2026-01-29 |
 | 5. Email Creation & Sending | 2/2 | Complete | 2026-01-29 |
-| 6. Advanced Features & Polish | 0/TBD | Not started | - |
+| 6. Advanced Features & Polish | 6/6 | Complete | 2026-01-29 |
