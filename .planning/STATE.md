@@ -5,34 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 2 - Authentication System (OIDC)
+**Current focus:** Phase 2 Complete - Ready for Phase 3 (Email Operations)
 
 ## Current Position
 
-Phase: 2 of 6 (Authentication System)
-Plan: 3 of 4 in phase
-Status: In progress
-Last activity: 2026-01-29 — Completed 02-02-PLAN.md
+Phase: 2 of 6 (Authentication System) - COMPLETE
+Plan: 4 of 4 in phase - COMPLETE
+Status: Phase complete
+Last activity: 2026-01-29 - Completed 02-04-PLAN.md
 
-Progress: [█████░░░░░] 50% (5 of 10 plans)
+Progress: [██████░░░░] 60% (6 of 10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 2.8 minutes
-- Total execution time: 0.23 hours
+- Total plans completed: 6
+- Average duration: 2.6 minutes
+- Total execution time: 0.26 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 2/2 | 7m | 3.5m |
-| 02 | 3/4 | 7m 01s | 2.3m |
+| 02 | 4/4 | 9m 15s | 2.3m |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3m), 01-02 (4m), 02-01 (2m 38s), 02-03 (1m 45s), 02-02 (2m 38s)
-- Trend: Good velocity maintained, consistent ~2.5m on auth plans
+- Last 5 plans: 01-02 (4m), 02-01 (2m 38s), 02-03 (1m 45s), 02-02 (2m 38s), 02-04 (2m 14s)
+- Trend: Excellent velocity, consistent ~2.3m on auth plans
 
 *Updated after each plan completion*
 
@@ -60,6 +60,9 @@ Recent decisions affecting current work:
 - 02-03: 60-second expiry buffer for proactive token refresh
 - 02-03: Promise-based mutex for concurrent refresh serialization
 - 02-03: Keep old refresh token if server doesn't rotate
+- 02-04: getAuthHeaders() made async - internal change only
+- 02-04: TokenRefresher created in constructor for OIDC auth method
+- 02-04: Fresh token retrieved on every request via ensureValidToken()
 
 ### Pending Todos
 
@@ -71,11 +74,11 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T15:21:14Z
-Stopped at: Completed 02-02-PLAN.md (PKCE OAuth Flow)
+Last session: 2026-01-29T15:25:20Z
+Stopped at: Completed 02-04-PLAN.md (Auth Provider Integration)
 Resume file: None
 
-## Phase 2 Progress
+## Phase 2 Summary (COMPLETE)
 
 Plan 02-01 (Auth Foundation) complete with:
 - OIDC config validation (issuer, clientId, scope, redirectUri)
@@ -96,4 +99,17 @@ Plan 02-03 (Token Refresh) complete with:
 - Promise-based mutex prevents concurrent refresh races
 - 76 passing tests (57 + 19 new)
 
-Next: 02-04 (Auth Provider Integration)
+Plan 02-04 (Auth Provider Integration) complete with:
+- JMAPClient.getAuthHeaders() async with OIDC support
+- TokenRefresher integration for automatic token refresh
+- All three auth methods (basic, bearer, oidc) working
+- 92 passing tests (87 + 5 new)
+
+**Phase 2 Deliverables:**
+- Complete authentication system supporting Basic, Bearer, and OIDC
+- PKCE S256 OAuth flow with browser-based authentication
+- Automatic token refresh with 60-second expiry buffer
+- Secure token storage with 0600 permissions
+- 92 tests covering all auth components
+
+Next: Phase 3 (Email Operations)
