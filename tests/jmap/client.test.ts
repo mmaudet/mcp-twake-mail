@@ -5,6 +5,15 @@ import { JMAPError } from '../../src/errors.js';
 import type { Config } from '../../src/config/schema.js';
 import type { Logger } from '../../src/config/logger.js';
 
+// Mock the token-refresh module
+vi.mock('../../src/auth/token-refresh.js', () => ({
+  createTokenRefresher: vi.fn(),
+  TokenRefresher: vi.fn(),
+}));
+
+import { createTokenRefresher } from '../../src/auth/token-refresh.js';
+const mockCreateTokenRefresher = vi.mocked(createTokenRefresher);
+
 // Setup fetch mock
 const fetchMocker = createFetchMock(vi);
 
@@ -15,6 +24,20 @@ const mockConfig: Config = {
   JMAP_USERNAME: 'testuser',
   JMAP_PASSWORD: 'testpass',
   JMAP_TOKEN: undefined,
+  JMAP_REQUEST_TIMEOUT: 30000,
+  LOG_LEVEL: 'info',
+  JMAP_OIDC_SCOPE: 'openid email offline_access',
+  JMAP_OIDC_REDIRECT_PORT: 3000,
+};
+
+// OIDC config for OIDC tests
+const mockOidcConfig: Config = {
+  JMAP_SESSION_URL: 'https://jmap.example.com/session',
+  JMAP_AUTH_METHOD: 'oidc',
+  JMAP_OIDC_ISSUER: 'https://auth.example.com',
+  JMAP_OIDC_CLIENT_ID: 'test-client-id',
+  JMAP_OIDC_SCOPE: 'openid email offline_access',
+  JMAP_OIDC_REDIRECT_PORT: 3000,
   JMAP_REQUEST_TIMEOUT: 30000,
   LOG_LEVEL: 'info',
 };
@@ -366,6 +389,155 @@ describe('JMAPClient', () => {
       expect(client.getState('Email')).toBeUndefined();
       expect(client.getState('Mailbox')).toBeUndefined();
     });
+  });
+});
+
+describe('JMAPClient OIDC auth', () => {
+  let mockTokenRefresher: {
+    ensureValidToken: ReturnType<typeof vi.fn>;
+    isTokenValid: ReturnType<typeof vi.fn>;
+    clearCache: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    fetchMocker.enableMocks();
+    fetchMocker.resetMocks();
+    vi.clearAllMocks();
+
+    // Setup mock token refresher
+    mockTokenRefresher = {
+      ensureValidToken: vi.fn(),
+      isTokenValid: vi.fn(),
+      clearCache: vi.fn(),
+    };
+    mockCreateTokenRefresher.mockReturnValue(mockTokenRefresher as any);
+  });
+
+  afterEach(() => {
+    fetchMocker.disableMocks();
+  });
+
+  it('should use stored token from TokenRefresher for OIDC auth', async () => {
+    mockTokenRefresher.ensureValidToken.mockResolvedValue({
+      accessToken: 'oidc-access-token-123',
+      refreshToken: 'oidc-refresh-token',
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
+    fetchMocker.mockResponseOnce(JSON.stringify(validSessionResponse));
+
+    const client = new JMAPClient(mockOidcConfig, mockLogger);
+    await client.fetchSession();
+
+    // Verify TokenRefresher was created with correct params
+    expect(mockCreateTokenRefresher).toHaveBeenCalledWith(
+      'https://auth.example.com',
+      'test-client-id'
+    );
+
+    // Verify ensureValidToken was called
+    expect(mockTokenRefresher.ensureValidToken).toHaveBeenCalled();
+
+    // Verify Authorization header uses the stored token
+    const [, options] = fetchMocker.mock.calls[0];
+    expect(options?.headers?.['Authorization']).toBe('Bearer oidc-access-token-123');
+  });
+
+  it('should propagate noStoredTokens error with re-auth instructions', async () => {
+    const noTokensError = new JMAPError(
+      'No stored tokens found',
+      'noStoredTokens',
+      'Run the auth command: npx mcp-twake-mail-auth'
+    );
+    mockTokenRefresher.ensureValidToken.mockRejectedValue(noTokensError);
+
+    const client = new JMAPClient(mockOidcConfig, mockLogger);
+
+    try {
+      await client.fetchSession();
+      expect.fail('Expected JMAPError to be thrown');
+    } catch (error) {
+      expect(error).toBeInstanceOf(JMAPError);
+      expect((error as JMAPError).type).toBe('noStoredTokens');
+      expect((error as JMAPError).fix).toContain('auth command');
+    }
+  });
+
+  it('should propagate refreshFailed error with re-auth instructions', async () => {
+    const refreshFailedError = new JMAPError(
+      'Token refresh failed: invalid_grant',
+      'refreshFailed',
+      'Re-authenticate: npx mcp-twake-mail-auth'
+    );
+    mockTokenRefresher.ensureValidToken.mockRejectedValue(refreshFailedError);
+
+    const client = new JMAPClient(mockOidcConfig, mockLogger);
+
+    try {
+      await client.fetchSession();
+      expect.fail('Expected JMAPError to be thrown');
+    } catch (error) {
+      expect(error).toBeInstanceOf(JMAPError);
+      expect((error as JMAPError).type).toBe('refreshFailed');
+      expect((error as JMAPError).fix).toContain('Re-authenticate');
+    }
+  });
+
+  it('should use fresh token for each request via TokenRefresher', async () => {
+    // First call returns one token, second call returns a different token (simulating refresh)
+    mockTokenRefresher.ensureValidToken
+      .mockResolvedValueOnce({
+        accessToken: 'first-token',
+        refreshToken: 'refresh-token',
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      })
+      .mockResolvedValueOnce({
+        accessToken: 'refreshed-token',
+        refreshToken: 'refresh-token',
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      });
+
+    fetchMocker.mockResponseOnce(JSON.stringify(validSessionResponse));
+    fetchMocker.mockResponseOnce(JSON.stringify({
+      methodResponses: [['Email/get', { list: [] }, 'c1']],
+    }));
+
+    const client = new JMAPClient(mockOidcConfig, mockLogger);
+    await client.fetchSession();
+    await client.request([['Email/get', {}, 'c1']]);
+
+    // Verify ensureValidToken was called twice (once for session, once for request)
+    expect(mockTokenRefresher.ensureValidToken).toHaveBeenCalledTimes(2);
+
+    // Check first call used first token
+    const [, sessionOptions] = fetchMocker.mock.calls[0];
+    expect(sessionOptions?.headers?.['Authorization']).toBe('Bearer first-token');
+
+    // Check second call used refreshed token
+    const [, requestOptions] = fetchMocker.mock.calls[1];
+    expect(requestOptions?.headers?.['Authorization']).toBe('Bearer refreshed-token');
+  });
+
+  it('should throw oidcConfigError when OIDC config is incomplete', async () => {
+    // Create config missing OIDC settings but with auth method set to oidc
+    const incompleteOidcConfig: Config = {
+      ...mockConfig,
+      JMAP_AUTH_METHOD: 'oidc',
+      // JMAP_OIDC_ISSUER and JMAP_OIDC_CLIENT_ID are missing
+    };
+
+    // Mock returns null since config is incomplete
+    mockCreateTokenRefresher.mockReturnValue(null as any);
+
+    const client = new JMAPClient(incompleteOidcConfig, mockLogger);
+
+    try {
+      await client.fetchSession();
+      expect.fail('Expected JMAPError to be thrown');
+    } catch (error) {
+      expect(error).toBeInstanceOf(JMAPError);
+      expect((error as JMAPError).type).toBe('oidcConfigError');
+      expect((error as JMAPError).fix).toContain('OIDC_ISSUER');
+    }
   });
 });
 
