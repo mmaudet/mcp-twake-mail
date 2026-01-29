@@ -7,6 +7,7 @@ import type { JMAPClient } from '../../jmap/client.js';
 import type { Logger } from '../../config/logger.js';
 import { registerEmailTools } from './email.js';
 import { registerMailboxTools } from './mailbox.js';
+import { registerEmailOperationTools } from './email-operations.js';
 
 /**
  * Register all MCP tools with the server.
@@ -26,6 +27,9 @@ export function registerAllTools(
 
   // Register mailbox tools (get_mailbox, list_mailboxes)
   registerMailboxTools(server, jmapClient, logger);
+
+  // Register email operation tools (mark_as_read, mark_as_unread, delete_email)
+  registerEmailOperationTools(server, jmapClient, logger);
 
   logger.info('All MCP tools registered');
 }
