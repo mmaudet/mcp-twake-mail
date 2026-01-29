@@ -1,6 +1,7 @@
 /**
- * Email write operation MCP tools - mark_as_read, mark_as_unread, delete_email.
- * These tools enable AI assistants to modify email read status and delete emails.
+ * Email write operation MCP tools for managing emails via JMAP.
+ * Tools: mark_as_read, mark_as_unread, delete_email, move_email, add_label, remove_label, create_draft.
+ * These tools enable AI assistants to modify email status, organize emails, and create drafts.
  */
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';

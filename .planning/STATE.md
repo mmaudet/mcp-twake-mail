@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 4 - Email Management Operations (Write tools for email modification)
+**Current focus:** Phase 4 Complete - All email management operations implemented
 
 ## Current Position
 
 Phase: 4 of 6 (Email Management Operations)
-Plan: 1 of 2 in phase
-Status: In progress
-Last activity: 2026-01-29 - Completed 04-01-PLAN.md
+Plan: 2 of 2 in phase
+Status: Phase complete
+Last activity: 2026-01-29 - Completed 04-02-PLAN.md
 
-Progress: [███████████░] 92% (11 of 12 plans)
+Progress: [████████████] 100% (12 of 12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 2.5 minutes
-- Total execution time: 0.46 hours
+- Total plans completed: 12
+- Average duration: 2.6 minutes
+- Total execution time: 0.52 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [███████████░] 92% (11 of 12 plans)
 | 01 | 2/2 | 7m | 3.5m |
 | 02 | 4/4 | 9m 15s | 2.3m |
 | 03 | 4/4 | 10m | 2.5m |
-| 04 | 1/2 | 2m 25s | 2.4m |
+| 04 | 2/2 | 5m 35s | 2.8m |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (3m 49s), 03-02 (1m 22s), 03-03 (2m 31s), 03-04 (2m 18s), 04-01 (2m 25s)
-- Trend: Steady velocity, non-TDD plans faster
+- Last 5 plans: 03-02 (1m 22s), 03-03 (2m 31s), 03-04 (2m 18s), 04-01 (2m 25s), 04-02 (3m 10s)
+- Trend: Steady velocity, test-heavy plans slightly longer
 
 *Updated after each plan completion*
 
@@ -79,6 +79,10 @@ Recent decisions affecting current work:
 - 04-01: JMAP patch syntax for keyword updates ('keywords/$seen': true/null)
 - 04-01: Soft delete by default (move to Trash), permanent=true for destroy
 - 04-01: Fallback to permanent delete if Trash mailbox not found
+- 04-02: move_email uses full mailboxIds replacement (true move semantics)
+- 04-02: add_label/remove_label use JMAP patch syntax (`mailboxIds/[id]`)
+- 04-02: Friendly error message for last-mailbox constraint
+- 04-02: create_draft uses EMAIL_CREATE_ANNOTATIONS (not idempotent)
 
 ### Pending Todos
 
@@ -90,8 +94,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T18:54:36Z
-Stopped at: Completed 04-01-PLAN.md (Email Write Operations)
+Last session: 2026-01-29T19:59:00Z
+Stopped at: Completed 04-02-PLAN.md (Move, Label, and Draft Operations)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -165,9 +169,7 @@ Plan 03-04 (Mailbox MCP Tools) complete with:
 - Tool registration aggregator for clean server initialization
 - 176 tests covering all components
 
-Next: Phase 4 - Write Operations (move_email, mark_read, mark_flagged, delete_email)
-
-## Phase 4 Summary (IN PROGRESS)
+## Phase 4 Summary (COMPLETE)
 
 Plan 04-01 (Email Write Operations) complete with:
 - EmailSetResponse type for Email/set responses (RFC 8621 Section 4.3)
@@ -177,4 +179,19 @@ Plan 04-01 (Email Write Operations) complete with:
 - EMAIL_WRITE_ANNOTATIONS and EMAIL_DESTRUCTIVE_ANNOTATIONS constants
 - registerEmailOperationTools() integrated in index.ts
 
-Next: Plan 04-02 - Move and label operations (move_email, add_label, remove_label)
+Plan 04-02 (Move, Label, and Draft Operations) complete with:
+- move_email tool using full mailboxIds replacement (EMAIL-08)
+- add_label tool using JMAP patch syntax (EMAIL-09)
+- remove_label tool with friendly last-mailbox error (EMAIL-10)
+- create_draft tool with $draft/$seen keywords (EMAIL-12)
+- EMAIL_CREATE_ANNOTATIONS constant (not idempotent)
+- 17 unit tests for all email operation tools
+
+**Phase 4 Deliverables:**
+- Complete email write operations: mark_as_read, mark_as_unread, delete_email
+- Mailbox manipulation: move_email, add_label, remove_label
+- Draft creation: create_draft with proper JMAP structure
+- 7 email operation tools with proper MCP annotations
+- 193 total tests passing
+
+Next: Phase 5 - Integration Testing (if planned) or Phase 6 - Final polish
