@@ -741,9 +741,14 @@ export function registerEmailOperationTools(
       try {
         const session = jmapClient.getSession();
 
-        // Find Drafts mailbox by getting all mailboxes and filtering by role
+        // Get identity and Drafts mailbox in a single batch
         // (some JMAP servers don't support filter by role in Mailbox/query)
-        const mailboxResponse = await jmapClient.request([
+        const setupResponse = await jmapClient.request([
+          [
+            'Identity/get',
+            { accountId: session.accountId },
+            'getIdentity',
+          ],
           [
             'Mailbox/get',
             {
@@ -754,7 +759,26 @@ export function registerEmailOperationTools(
           ],
         ]);
 
-        const getResult = jmapClient.parseMethodResponse(mailboxResponse.methodResponses[0]);
+        // Parse Identity response
+        const identityResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[0]);
+        if (!identityResult.success) {
+          logger.error({ error: identityResult.error }, 'JMAP error getting identity');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to get identity',
+              },
+            ],
+          };
+        }
+
+        const identities = (identityResult.data as { list: Array<{ id: string; email: string; name?: string }> }).list;
+        const identity = identities?.[0];
+
+        // Parse Mailbox response
+        const getResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[1]);
         if (!getResult.success) {
           logger.error({ error: getResult.error }, 'JMAP error getting mailboxes');
           return {
@@ -799,6 +823,11 @@ export function registerEmailOperationTools(
             },
           },
         };
+
+        // Set from field using identity (if available)
+        if (identity) {
+          emailCreate.from = [{ email: identity.email, name: identity.name }];
+        }
 
         // Add optional address fields
         if (to && to.length > 0) {
