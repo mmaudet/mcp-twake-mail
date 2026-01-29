@@ -441,5 +441,272 @@ export function registerEmailOperationTools(
     }
   );
 
-  logger.debug('Email operation tools registered: mark_as_read, mark_as_unread, delete_email');
+  // move_email - move email to a different mailbox (EMAIL-08)
+  server.registerTool(
+    'move_email',
+    {
+      title: 'Move Email',
+      description: 'Move an email to a different mailbox. This replaces all current mailbox associations.',
+      inputSchema: {
+        emailId: z.string().describe('The unique identifier of the email to move'),
+        targetMailboxId: z.string().describe('The ID of the mailbox to move the email to'),
+      },
+      annotations: EMAIL_WRITE_ANNOTATIONS,
+    },
+    async ({ emailId, targetMailboxId }) => {
+      logger.debug({ emailId, targetMailboxId }, 'move_email called');
+
+      try {
+        const session = jmapClient.getSession();
+        const response = await jmapClient.request([
+          [
+            'Email/set',
+            {
+              accountId: session.accountId,
+              update: {
+                [emailId]: {
+                  mailboxIds: { [targetMailboxId]: true },
+                },
+              },
+            },
+            'moveEmail',
+          ],
+        ]);
+
+        const result = jmapClient.parseMethodResponse(response.methodResponses[0]);
+        if (!result.success) {
+          logger.error({ error: result.error, emailId }, 'JMAP error in move_email');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to move email: ${result.error?.description || result.error?.type || 'Unknown error'}`,
+              },
+            ],
+          };
+        }
+
+        const setResponse = result.data as unknown as EmailSetResponse;
+        if (setResponse.notUpdated?.[emailId]) {
+          const error = setResponse.notUpdated[emailId];
+          logger.error({ error, emailId }, 'Email/set notUpdated in move_email');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to move email: ${error.type} - ${error.description || ''}`,
+              },
+            ],
+          };
+        }
+
+        logger.debug({ emailId, targetMailboxId }, 'move_email success');
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ success: true, emailId, targetMailboxId }),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error({ error, emailId }, 'Exception in move_email');
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error moving email: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // add_label - add a mailbox to an email without removing existing ones (EMAIL-09)
+  server.registerTool(
+    'add_label',
+    {
+      title: 'Add Label to Email',
+      description: 'Add a label (mailbox) to an email without removing existing labels.',
+      inputSchema: {
+        emailId: z.string().describe('The unique identifier of the email'),
+        mailboxId: z.string().describe('The ID of the mailbox (label) to add'),
+      },
+      annotations: EMAIL_WRITE_ANNOTATIONS,
+    },
+    async ({ emailId, mailboxId }) => {
+      logger.debug({ emailId, mailboxId }, 'add_label called');
+
+      try {
+        const session = jmapClient.getSession();
+        const response = await jmapClient.request([
+          [
+            'Email/set',
+            {
+              accountId: session.accountId,
+              update: {
+                [emailId]: {
+                  [`mailboxIds/${mailboxId}`]: true,
+                },
+              },
+            },
+            'addLabel',
+          ],
+        ]);
+
+        const result = jmapClient.parseMethodResponse(response.methodResponses[0]);
+        if (!result.success) {
+          logger.error({ error: result.error, emailId }, 'JMAP error in add_label');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to add label: ${result.error?.description || result.error?.type || 'Unknown error'}`,
+              },
+            ],
+          };
+        }
+
+        const setResponse = result.data as unknown as EmailSetResponse;
+        if (setResponse.notUpdated?.[emailId]) {
+          const error = setResponse.notUpdated[emailId];
+          logger.error({ error, emailId }, 'Email/set notUpdated in add_label');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to add label: ${error.type} - ${error.description || ''}`,
+              },
+            ],
+          };
+        }
+
+        logger.debug({ emailId, mailboxId }, 'add_label success');
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ success: true, emailId, addedMailboxId: mailboxId }),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error({ error, emailId }, 'Exception in add_label');
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error adding label: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // remove_label - remove a mailbox from an email (EMAIL-10)
+  server.registerTool(
+    'remove_label',
+    {
+      title: 'Remove Label from Email',
+      description: 'Remove a label (mailbox) from an email. Email must belong to at least one mailbox.',
+      inputSchema: {
+        emailId: z.string().describe('The unique identifier of the email'),
+        mailboxId: z.string().describe('The ID of the mailbox (label) to remove'),
+      },
+      annotations: EMAIL_WRITE_ANNOTATIONS,
+    },
+    async ({ emailId, mailboxId }) => {
+      logger.debug({ emailId, mailboxId }, 'remove_label called');
+
+      try {
+        const session = jmapClient.getSession();
+        const response = await jmapClient.request([
+          [
+            'Email/set',
+            {
+              accountId: session.accountId,
+              update: {
+                [emailId]: {
+                  [`mailboxIds/${mailboxId}`]: null,
+                },
+              },
+            },
+            'removeLabel',
+          ],
+        ]);
+
+        const result = jmapClient.parseMethodResponse(response.methodResponses[0]);
+        if (!result.success) {
+          logger.error({ error: result.error, emailId }, 'JMAP error in remove_label');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to remove label: ${result.error?.description || result.error?.type || 'Unknown error'}`,
+              },
+            ],
+          };
+        }
+
+        const setResponse = result.data as unknown as EmailSetResponse;
+        if (setResponse.notUpdated?.[emailId]) {
+          const error = setResponse.notUpdated[emailId];
+          logger.error({ error, emailId }, 'Email/set notUpdated in remove_label');
+          // Handle the case where email only has one mailbox
+          if (error.type === 'invalidProperties') {
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'Cannot remove label: email must belong to at least one mailbox',
+                },
+              ],
+            };
+          }
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to remove label: ${error.type} - ${error.description || ''}`,
+              },
+            ],
+          };
+        }
+
+        logger.debug({ emailId, mailboxId }, 'remove_label success');
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ success: true, emailId, removedMailboxId: mailboxId }),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error({ error, emailId }, 'Exception in remove_label');
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error removing label: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  logger.debug('Email operation tools registered: mark_as_read, mark_as_unread, delete_email, move_email, add_label, remove_label');
 }
