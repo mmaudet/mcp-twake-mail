@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { transformMailbox } from '../mailbox.js';
-import type { SimplifiedMailbox, MailboxRole } from '../../types/dto.js';
+import type { SimplifiedMailbox } from '../../types/dto.js';
 
 describe('transformMailbox', () => {
   describe('core fields', () => {
@@ -65,7 +65,8 @@ describe('transformMailbox', () => {
   });
 
   describe('standard roles', () => {
-    const standardRoles: MailboxRole[] = [
+    // Non-null roles only for testing
+    const standardRoles = [
       'inbox',
       'drafts',
       'sent',
@@ -75,9 +76,9 @@ describe('transformMailbox', () => {
       'all',
       'important',
       'subscribed',
-    ];
+    ] as const;
 
-    it.each(standardRoles)('preserves standard role: %s', (role) => {
+    it.each([...standardRoles])('preserves standard role: %s', (role) => {
       const jmapMailbox = {
         id: `m-${role}`,
         name: role.charAt(0).toUpperCase() + role.slice(1),
