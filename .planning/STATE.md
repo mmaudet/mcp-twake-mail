@@ -5,33 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 1 Complete - Ready for Phase 2
+**Current focus:** Phase 2 - Authentication System (OIDC)
 
 ## Current Position
 
-Phase: 1 of 6 (Foundation & JMAP Client)
-Plan: 2 of 2 in phase
-Status: Phase 1 complete
-Last activity: 2026-01-29 — Completed 01-02-PLAN.md
+Phase: 2 of 6 (Authentication System)
+Plan: 1 of 3 in phase
+Status: In progress
+Last activity: 2026-01-29 — Completed 02-01-PLAN.md
 
-Progress: [██████████] 100% (Phase 1)
+Progress: [███░░░░░░░] 30% (3 of 10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 3.5 minutes
-- Total execution time: 0.12 hours
+- Total plans completed: 3
+- Average duration: 3.2 minutes
+- Total execution time: 0.16 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 2/2 | 7m | 3.5m |
+| 02 | 1/3 | 2m 38s | 2.6m |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3m), 01-02 (4m)
-- Trend: Stable velocity, slight increase for more complex tasks
+- Last 5 plans: 01-01 (3m), 01-02 (4m), 02-01 (2m 38s)
+- Trend: Good velocity maintained
 
 *Updated after each plan completion*
 
@@ -51,6 +52,8 @@ Recent decisions affecting current work:
 - 01-02: State tracking in JMAPClient (coupled to request lifecycle)
 - 01-02: JMAPError static factories for consistent error creation
 - 01-02: request() accepts methodCalls array for natural batching
+- 02-01: Token file at ~/.mcp-twake-mail/tokens.json with 0600 permissions
+- 02-01: OIDC requires issuer and client ID; token comes from OAuth flow
 
 ### Pending Todos
 
@@ -62,19 +65,16 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T14:16:42Z
-Stopped at: Completed 01-02-PLAN.md (JMAP Client)
+Last session: 2026-01-29T15:17:00Z
+Stopped at: Completed 02-01-PLAN.md (Auth Foundation Components)
 Resume file: None
 
-## Phase 1 Completion Summary
+## Phase 2 Progress
 
-Phase 1 (Foundation & JMAP Client) is complete with:
-- TypeScript ESM project infrastructure
-- Zod-validated configuration with fail-fast startup
-- Pino logger with stderr-only output
-- AI-friendly error formatting
-- JMAPClient with session management, batching, timeouts
-- State tracking for incremental sync
-- 47 passing unit tests
+Plan 02-01 (Auth Foundation) complete with:
+- OIDC config validation (issuer, clientId, scope, redirectUri)
+- Token store with secure 0600 permissions
+- Auth-specific error factories with re-auth instructions
+- 57 passing tests (47 + 10 new)
 
-Ready for Phase 2: Email & Mailbox Services
+Next: 02-02 (PKCE OAuth Flow)
