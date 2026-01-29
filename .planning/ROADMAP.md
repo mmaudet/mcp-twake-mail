@@ -12,7 +12,7 @@ This roadmap delivers an MCP server that enables AI assistants to interact with 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & JMAP Client** - TypeScript setup, JMAP client with session management and state tracking
+- [x] **Phase 1: Foundation & JMAP Client** - TypeScript setup, JMAP client with session management and state tracking
 - [ ] **Phase 2: Authentication System** - Basic, Bearer, and OIDC authentication with secure token storage
 - [ ] **Phase 3: Core Read Operations** - MCP server with read-only email and mailbox tools
 - [ ] **Phase 4: Email Management Operations** - Write operations for marking, deleting, moving, and labeling emails
@@ -34,8 +34,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project infrastructure with TypeScript ESM, config validation, logging, error formatting
-- [ ] 01-02-PLAN.md — JMAP client with session management, batching, timeouts, error handling, state tracking
+- [x] 01-01-PLAN.md — Project infrastructure with TypeScript ESM, config validation, logging, error formatting
+- [x] 01-02-PLAN.md — JMAP client with session management, batching, timeouts, error handling, state tracking
 
 ### Phase 2: Authentication System
 **Goal**: Users can authenticate via Basic, Bearer, or OIDC with secure token management
@@ -118,7 +118,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & JMAP Client | 0/2 | Planned | - |
+| 1. Foundation & JMAP Client | 2/2 | Complete | 2026-01-29 |
 | 2. Authentication System | 0/TBD | Not started | - |
 | 3. Core Read Operations | 0/TBD | Not started | - |
 | 4. Email Management Operations | 0/TBD | Not started | - |

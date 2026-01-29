@@ -1,0 +1,64 @@
+{
+  "name": "vitest-fetch-mock",
+  "version": "0.4.5",
+  "description": "fetch mock for vitest",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "./dist/**.*"
+  ],
+  "scripts": {
+    "type-check": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest run --watch",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix",
+    "format": "prettier src tests --write",
+    "format:check": "prettier src tests --check",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IanVS/vitest-fetch-mock.git"
+  },
+  "keywords": [
+    "vitest",
+    "mock",
+    "fetch"
+  ],
+  "author": {
+    "name": "Ian VanSchooten",
+    "email": "ian.vanschooten@gmail.com"
+  },
+  "contributors": [
+    {
+      "name": "Jeff Lau",
+      "email": "jeff-lau@live.com",
+      "url": "http://jefflau.net/"
+    }
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/IanVS/vitest-fetch-mock/issues"
+  },
+  "homepage": "https://github.com/IanVS/vitest-fetch-mock#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "@vitest/coverage-v8": "^2.1.3",
+    "eslint": "^8.56.0",
+    "jsdom": "^24.1.0",
+    "prettier": "^3.3.2",
+    "typescript": "~5.5.0",
+    "vitest": "^2.1.3"
+  },
+  "peerDependencies": {
+    "vitest": ">=2.0.0"
+  }
+}
