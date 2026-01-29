@@ -1,12 +1,18 @@
 /**
- * Attachment MCP tool - get_attachments.
- * Enables AI assistants to list and filter email attachments without downloading content.
+ * Attachment MCP tools - get_attachments, download_attachment.
+ * Enables AI assistants to list and download email attachments.
  */
 import { z } from 'zod';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { homedir } from 'os';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { JMAPClient } from '../../jmap/client.js';
 import type { Logger } from '../../config/logger.js';
+
+/** Maximum size for inline base64 response (750KB to stay under 1MB limit with overhead) */
+const MAX_INLINE_SIZE = 750 * 1024;
 
 /**
  * Metadata for a single attachment.
@@ -210,5 +216,118 @@ export function registerAttachmentTools(
     }
   );
 
-  logger.debug('Attachment tools registered: get_attachments');
+  // download_attachment - download attachment content (ATTACH-03)
+  server.registerTool(
+    'download_attachment',
+    {
+      title: 'Download Attachment',
+      description:
+        'Download an attachment by its blobId. Small files (< 750KB) are returned as base64. Large files are automatically saved to ~/Downloads and the path is returned.',
+      inputSchema: {
+        blobId: z.string().describe('The blob ID of the attachment to download (from get_attachments)'),
+        name: z.string().optional().describe('Filename for the attachment'),
+        type: z.string().optional().describe('MIME type of the attachment'),
+        saveToPath: z.string().optional().describe('Force save to this specific path (overrides automatic behavior)'),
+      },
+      annotations: ATTACHMENT_READ_ANNOTATIONS,
+    },
+    async ({ blobId, name, type, saveToPath }) => {
+      logger.debug({ blobId, name, type, saveToPath }, 'download_attachment called');
+
+      try {
+        // Download the blob
+        const data = await jmapClient.downloadBlob(blobId, name, type);
+        const buffer = Buffer.from(data);
+        const filename = name || 'attachment';
+
+        logger.debug(
+          { blobId, size: data.byteLength, maxInline: MAX_INLINE_SIZE },
+          'download_attachment downloaded'
+        );
+
+        // Decide whether to return inline or save to disk
+        const shouldSaveToDisk = saveToPath || data.byteLength > MAX_INLINE_SIZE;
+
+        if (shouldSaveToDisk) {
+          // Save to disk
+          let outputPath: string;
+          if (saveToPath) {
+            outputPath = saveToPath;
+          } else {
+            // Default to ~/Downloads
+            const downloadDir = join(homedir(), 'Downloads');
+            await mkdir(downloadDir, { recursive: true });
+            outputPath = join(downloadDir, filename);
+          }
+
+          await writeFile(outputPath, buffer);
+
+          logger.debug(
+            { blobId, size: data.byteLength, path: outputPath },
+            'download_attachment saved to disk'
+          );
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: JSON.stringify(
+                  {
+                    blobId,
+                    name: filename,
+                    mimeType: type || 'application/octet-stream',
+                    size: data.byteLength,
+                    savedTo: outputPath,
+                    message: `File saved to ${outputPath} (too large for inline response)`,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } else {
+          // Return inline as base64
+          const base64 = buffer.toString('base64');
+
+          logger.debug(
+            { blobId, size: data.byteLength },
+            'download_attachment returning inline'
+          );
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: JSON.stringify(
+                  {
+                    blobId,
+                    name: filename,
+                    mimeType: type || 'application/octet-stream',
+                    size: data.byteLength,
+                    data: base64,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+      } catch (error) {
+        logger.error({ error, blobId }, 'Exception in download_attachment');
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error downloading attachment: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  logger.debug('Attachment tools registered: get_attachments, download_attachment');
 }

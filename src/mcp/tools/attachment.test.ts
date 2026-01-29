@@ -504,7 +504,8 @@ describe('registerAttachmentTools', () => {
   describe('tool registration', () => {
     it('registers get_attachments tool', () => {
       expect(registeredTools.has('get_attachments')).toBe(true);
-      expect(registeredTools.size).toBe(1);
+      expect(registeredTools.has('download_attachment')).toBe(true);
+      expect(registeredTools.size).toBe(2);
     });
   });
 });

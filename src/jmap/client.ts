@@ -19,6 +19,7 @@ import { TokenRefresher, createTokenRefresher } from '../auth/token-refresh.js';
 /** Extracted session data from JMAP session response */
 export interface JMAPSession {
   apiUrl: string;
+  downloadUrl: string;
   accountId: string;
   capabilities: JMAPCapabilities;
   state: string;
@@ -122,8 +123,14 @@ export class JMAPClient {
       );
     }
 
+    // Validate downloadUrl exists (required for blob downloads)
+    if (!sessionData.downloadUrl) {
+      this.logger.warn('No downloadUrl in JMAP session - attachment downloads will not work');
+    }
+
     this.session = {
       apiUrl: sessionData.apiUrl,
+      downloadUrl: sessionData.downloadUrl || '',
       accountId,
       capabilities: sessionData.capabilities,
       state: sessionData.state,
@@ -299,5 +306,56 @@ export class JMAPClient {
       this.stateTracker.clear();
       this.logger.debug('All state cleared');
     }
+  }
+
+  /**
+   * Download a blob (attachment) from the JMAP server.
+   * Uses the downloadUrl template from the session.
+   * @param blobId The blob ID to download
+   * @param name Optional filename for the download
+   * @param type Optional MIME type
+   * @returns ArrayBuffer containing the blob data
+   * @throws JMAPError if download fails
+   */
+  async downloadBlob(blobId: string, name?: string, type?: string): Promise<ArrayBuffer> {
+    const session = this.getSession();
+
+    if (!session.downloadUrl) {
+      throw new JMAPError(
+        'Download URL not available',
+        'downloadUrlMissing',
+        'The JMAP server did not provide a download URL in the session.'
+      );
+    }
+
+    // Build download URL from template
+    // Template format: {downloadUrl}/{accountId}/{blobId}/{name}?type={type}
+    let url = session.downloadUrl
+      .replace('{accountId}', encodeURIComponent(session.accountId))
+      .replace('{blobId}', encodeURIComponent(blobId))
+      .replace('{name}', encodeURIComponent(name || 'attachment'))
+      .replace('{type}', encodeURIComponent(type || 'application/octet-stream'));
+
+    this.logger.debug({ blobId, name, type, url }, 'Downloading blob');
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: await this.getAuthHeaders(),
+        signal: AbortSignal.timeout(this.config.JMAP_REQUEST_TIMEOUT),
+      });
+    } catch (error) {
+      if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+        throw JMAPError.timeout('blob download');
+      }
+      throw error;
+    }
+
+    if (!response.ok) {
+      throw JMAPError.httpError(response.status, response.statusText);
+    }
+
+    return response.arrayBuffer();
   }
 }

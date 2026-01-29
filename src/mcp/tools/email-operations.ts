@@ -803,16 +803,20 @@ export function registerEmailOperationTools(
         const draftsMailboxId = draftsMailbox.id;
 
         // Build email create object
+        // Use textBody instead of bodyStructure for better server compatibility
         const emailCreate: Record<string, unknown> = {
           mailboxIds: { [draftsMailboxId]: true },
           keywords: { '$draft': true, '$seen': true },
           subject: subject || '',
-          bodyStructure: { type: 'text/plain', partId: '1' },
+          textBody: [
+            {
+              partId: '1',
+              type: 'text/plain',
+            },
+          ],
           bodyValues: {
             '1': {
               value: body || '',
-              isEncodingProblem: false,
-              isTruncated: false,
             },
           },
         };

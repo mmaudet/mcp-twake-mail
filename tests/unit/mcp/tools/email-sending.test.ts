@@ -128,10 +128,11 @@ describe('Email Sending Tools', () => {
       expect(response.emailId).toBe('email-1');
       expect(response.submissionId).toBe('submission-1');
 
-      // Verify Email/set was called with correct body structure
+      // Verify Email/set was called with textBody (not bodyStructure)
       const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
       const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
-      expect(emailSetCall[1].create.email.bodyStructure.type).toBe('text/plain');
+      expect(emailSetCall[1].create.email.textBody).toEqual([{ partId: 'text', type: 'text/plain' }]);
+      expect(emailSetCall[1].create.email.bodyValues.text.value).toBe('Hello, World!');
     });
 
     it('sends email with multipart body (text + HTML)', async () => {
@@ -170,10 +171,11 @@ describe('Email Sending Tools', () => {
         htmlBody: '<p>Hello, World!</p>',
       });
 
-      // Verify Email/set was called with multipart body structure
+      // Verify Email/set was called with both textBody and htmlBody
       const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
       const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
-      expect(emailSetCall[1].create.email.bodyStructure.type).toBe('multipart/alternative');
+      expect(emailSetCall[1].create.email.textBody).toEqual([{ partId: 'text', type: 'text/plain' }]);
+      expect(emailSetCall[1].create.email.htmlBody).toEqual([{ partId: 'html', type: 'text/html' }]);
       expect(emailSetCall[1].create.email.bodyValues).toHaveProperty('text');
       expect(emailSetCall[1].create.email.bodyValues).toHaveProperty('html');
     });

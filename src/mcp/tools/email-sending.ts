@@ -152,35 +152,19 @@ export function registerEmailSendingTools(
         }
         const draftsMailboxId = draftsMailbox.id;
 
-        // Step 2: Build bodyStructure based on body/htmlBody
-        let bodyStructure: Record<string, unknown>;
-        let bodyValues: Record<string, { value: string; isEncodingProblem: boolean; isTruncated: boolean }>;
+        // Step 2: Build textBody/htmlBody for better server compatibility
+        // Using textBody/htmlBody instead of bodyStructure as it's better supported
+        let textBody: Array<{ partId: string; type: string }> | undefined;
+        let htmlBodyParts: Array<{ partId: string; type: string }> | undefined;
+        const bodyValues: Record<string, { value: string }> = {};
 
-        if (body && htmlBody) {
-          // Both text and HTML: multipart/alternative
-          bodyStructure = {
-            type: 'multipart/alternative',
-            subParts: [
-              { partId: 'text', type: 'text/plain' },
-              { partId: 'html', type: 'text/html' },
-            ],
-          };
-          bodyValues = {
-            text: { value: body, isEncodingProblem: false, isTruncated: false },
-            html: { value: htmlBody, isEncodingProblem: false, isTruncated: false },
-          };
-        } else if (htmlBody) {
-          // Only HTML
-          bodyStructure = { type: 'text/html', partId: 'body' };
-          bodyValues = {
-            body: { value: htmlBody, isEncodingProblem: false, isTruncated: false },
-          };
-        } else {
-          // Only text (or neither - use empty string)
-          bodyStructure = { type: 'text/plain', partId: 'body' };
-          bodyValues = {
-            body: { value: body || '', isEncodingProblem: false, isTruncated: false },
-          };
+        if (body) {
+          textBody = [{ partId: 'text', type: 'text/plain' }];
+          bodyValues.text = { value: body };
+        }
+        if (htmlBody) {
+          htmlBodyParts = [{ partId: 'html', type: 'text/html' }];
+          bodyValues.html = { value: htmlBody };
         }
 
         // Step 3: Build email object
@@ -189,9 +173,16 @@ export function registerEmailSendingTools(
           from: [{ name: identity.name, email: identity.email }],
           to: to.map((email) => ({ email })),
           subject,
-          bodyStructure,
           bodyValues,
         };
+
+        // Add body parts (server will create multipart/alternative if both present)
+        if (textBody) {
+          emailCreate.textBody = textBody;
+        }
+        if (htmlBodyParts) {
+          emailCreate.htmlBody = htmlBodyParts;
+        }
 
         // Add optional address fields
         if (cc && cc.length > 0) {
@@ -583,32 +574,18 @@ export function registerEmailSendingTools(
           }
         }
 
-        // Step 5: Build body structure (same logic as send_email)
-        let bodyStructure: Record<string, unknown>;
-        let bodyValues: Record<string, { value: string; isEncodingProblem: boolean; isTruncated: boolean }>;
+        // Step 5: Build textBody/htmlBody for better server compatibility
+        let textBody: Array<{ partId: string; type: string }> | undefined;
+        let htmlBodyParts: Array<{ partId: string; type: string }> | undefined;
+        const bodyValues: Record<string, { value: string }> = {};
 
-        if (body && htmlBody) {
-          bodyStructure = {
-            type: 'multipart/alternative',
-            subParts: [
-              { partId: 'text', type: 'text/plain' },
-              { partId: 'html', type: 'text/html' },
-            ],
-          };
-          bodyValues = {
-            text: { value: body, isEncodingProblem: false, isTruncated: false },
-            html: { value: htmlBody, isEncodingProblem: false, isTruncated: false },
-          };
-        } else if (htmlBody) {
-          bodyStructure = { type: 'text/html', partId: 'body' };
-          bodyValues = {
-            body: { value: htmlBody, isEncodingProblem: false, isTruncated: false },
-          };
-        } else {
-          bodyStructure = { type: 'text/plain', partId: 'body' };
-          bodyValues = {
-            body: { value: body || '', isEncodingProblem: false, isTruncated: false },
-          };
+        if (body) {
+          textBody = [{ partId: 'text', type: 'text/plain' }];
+          bodyValues.text = { value: body };
+        }
+        if (htmlBody) {
+          htmlBodyParts = [{ partId: 'html', type: 'text/html' }];
+          bodyValues.html = { value: htmlBody };
         }
 
         // Step 6: Build email object
@@ -619,9 +596,16 @@ export function registerEmailSendingTools(
           subject: replySubject,
           inReplyTo,
           references,
-          bodyStructure,
           bodyValues,
         };
+
+        // Add body parts (server will create multipart/alternative if both present)
+        if (textBody) {
+          emailCreate.textBody = textBody;
+        }
+        if (htmlBodyParts) {
+          emailCreate.htmlBody = htmlBodyParts;
+        }
 
         // Add cc if non-empty
         if (ccAddresses.length > 0) {
