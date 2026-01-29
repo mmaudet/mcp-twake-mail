@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 Phase: 2 of 6 (Authentication System)
-Plan: 3 of 4 in phase (02-02 running in parallel)
+Plan: 3 of 4 in phase
 Status: In progress
-Last activity: 2026-01-29 — Completed 02-03-PLAN.md
+Last activity: 2026-01-29 — Completed 02-02-PLAN.md
 
-Progress: [████░░░░░░] 40% (4 of 10 plans)
+Progress: [█████░░░░░] 50% (5 of 10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 2.9 minutes
-- Total execution time: 0.19 hours
+- Total plans completed: 5
+- Average duration: 2.8 minutes
+- Total execution time: 0.23 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 2/2 | 7m | 3.5m |
-| 02 | 2/4 | 4m 23s | 2.2m |
+| 02 | 3/4 | 7m 01s | 2.3m |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3m), 01-02 (4m), 02-01 (2m 38s), 02-03 (1m 45s)
-- Trend: Good velocity maintained, faster on focused plans
+- Last 5 plans: 01-01 (3m), 01-02 (4m), 02-01 (2m 38s), 02-03 (1m 45s), 02-02 (2m 38s)
+- Trend: Good velocity maintained, consistent ~2.5m on auth plans
 
 *Updated after each plan completion*
 
@@ -54,6 +54,9 @@ Recent decisions affecting current work:
 - 01-02: request() accepts methodCalls array for natural batching
 - 02-01: Token file at ~/.mcp-twake-mail/tokens.json with 0600 permissions
 - 02-01: OIDC requires issuer and client ID; token comes from OAuth flow
+- 02-02: Public client with PKCE instead of client secret
+- 02-02: S256 code challenge method enforced (never plain)
+- 02-02: 2-minute timeout for user browser authentication
 - 02-03: 60-second expiry buffer for proactive token refresh
 - 02-03: Promise-based mutex for concurrent refresh serialization
 - 02-03: Keep old refresh token if server doesn't rotate
@@ -68,8 +71,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T15:21:00Z
-Stopped at: Completed 02-03-PLAN.md (Token Refresh with Mutex)
+Last session: 2026-01-29T15:21:14Z
+Stopped at: Completed 02-02-PLAN.md (PKCE OAuth Flow)
 Resume file: None
 
 ## Phase 2 Progress
@@ -80,7 +83,12 @@ Plan 02-01 (Auth Foundation) complete with:
 - Auth-specific error factories with re-auth instructions
 - 57 passing tests (47 + 10 new)
 
-Plan 02-02 (PKCE OAuth Flow) running in parallel.
+Plan 02-02 (PKCE OAuth Flow) complete with:
+- performOIDCFlow() with full PKCE S256 implementation
+- Browser-based auth via oauth-callback and open packages
+- State validation for CSRF protection
+- Token exchange and secure persistence
+- 87 passing tests (76 + 11 new)
 
 Plan 02-03 (Token Refresh) complete with:
 - TokenRefresher class with ensureValidToken()
