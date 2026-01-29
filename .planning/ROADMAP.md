@@ -13,7 +13,7 @@ This roadmap delivers an MCP server that enables AI assistants to interact with 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & JMAP Client** - TypeScript setup, JMAP client with session management and state tracking
-- [ ] **Phase 2: Authentication System** - Basic, Bearer, and OIDC authentication with secure token storage
+- [x] **Phase 2: Authentication System** - Basic, Bearer, and OIDC authentication with secure token storage
 - [ ] **Phase 3: Core Read Operations** - MCP server with read-only email and mailbox tools
 - [ ] **Phase 4: Email Management Operations** - Write operations for marking, deleting, moving, and labeling emails
 - [ ] **Phase 5: Email Creation & Sending** - Send, reply, and draft creation capabilities
@@ -51,10 +51,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Config extension for OIDC, secure token store, auth error factories
-- [ ] 02-02-PLAN.md — OIDC authorization code flow with PKCE S256
-- [ ] 02-03-PLAN.md — Token refresh with expiry buffer and mutex for concurrency
-- [ ] 02-04-PLAN.md — JMAPClient integration with token store and auto-refresh
+- [x] 02-01-PLAN.md — Config extension for OIDC, secure token store, auth error factories
+- [x] 02-02-PLAN.md — OIDC authorization code flow with PKCE S256
+- [x] 02-03-PLAN.md — Token refresh with expiry buffer and mutex for concurrency
+- [x] 02-04-PLAN.md — JMAPClient integration with token store and auto-refresh
 
 ### Phase 3: Core Read Operations
 **Goal**: AI assistant can search, read, and navigate emails and mailboxes
@@ -122,7 +122,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & JMAP Client | 2/2 | Complete | 2026-01-29 |
-| 2. Authentication System | 0/4 | Not started | - |
+| 2. Authentication System | 4/4 | Complete | 2026-01-29 |
 | 3. Core Read Operations | 0/TBD | Not started | - |
 | 4. Email Management Operations | 0/TBD | Not started | - |
 | 5. Email Creation & Sending | 0/TBD | Not started | - |

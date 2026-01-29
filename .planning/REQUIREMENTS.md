@@ -134,23 +134,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 1 | Pending |
-| FOUND-02 | Phase 1 | Pending |
-| FOUND-03 | Phase 1 | Pending |
-| FOUND-04 | Phase 1 | Pending |
-| FOUND-05 | Phase 1 | Pending |
-| JMAP-01 | Phase 1 | Pending |
-| JMAP-02 | Phase 1 | Pending |
-| JMAP-03 | Phase 1 | Pending |
-| JMAP-04 | Phase 1 | Pending |
-| JMAP-05 | Phase 1 | Pending |
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
-| AUTH-03 | Phase 2 | Pending |
-| AUTH-04 | Phase 2 | Pending |
-| AUTH-05 | Phase 2 | Pending |
-| AUTH-06 | Phase 2 | Pending |
-| AUTH-07 | Phase 2 | Pending |
+| FOUND-01 | Phase 1 | Complete |
+| FOUND-02 | Phase 1 | Complete |
+| FOUND-03 | Phase 1 | Complete |
+| FOUND-04 | Phase 1 | Complete |
+| FOUND-05 | Phase 1 | Complete |
+| JMAP-01 | Phase 1 | Complete |
+| JMAP-02 | Phase 1 | Complete |
+| JMAP-03 | Phase 1 | Complete |
+| JMAP-04 | Phase 1 | Complete |
+| JMAP-05 | Phase 1 | Complete |
+| AUTH-01 | Phase 2 | Complete |
+| AUTH-02 | Phase 2 | Complete |
+| AUTH-03 | Phase 2 | Complete |
+| AUTH-04 | Phase 2 | Complete |
+| AUTH-05 | Phase 2 | Complete |
+| AUTH-06 | Phase 2 | Complete |
+| AUTH-07 | Phase 2 | Complete |
 | EMAIL-03 | Phase 3 | Pending |
 | EMAIL-04 | Phase 3 | Pending |
 | EMAIL-11 | Phase 3 | Pending |
