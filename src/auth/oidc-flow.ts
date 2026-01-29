@@ -1,5 +1,5 @@
 import * as client from 'openid-client';
-import { getAuthCode, getRedirectUrl } from 'oauth-callback';
+import { getAuthCode } from 'oauth-callback';
 import open from 'open';
 
 import { saveTokens, type StoredTokens } from './token-store.js';
@@ -15,8 +15,8 @@ export interface OIDCFlowOptions {
   clientId: string;
   /** OAuth scopes to request (space-separated) */
   scope: string;
-  /** Port for localhost callback server */
-  redirectPort: number;
+  /** Fixed redirect URI (must be registered with the OIDC provider) */
+  redirectUri: string;
 }
 
 /**
@@ -36,7 +36,7 @@ export interface OIDCFlowOptions {
  * @throws JMAPError on OIDC flow failures
  */
 export async function performOIDCFlow(options: OIDCFlowOptions): Promise<StoredTokens> {
-  const { issuerUrl, clientId, scope, redirectPort } = options;
+  const { issuerUrl, clientId, scope, redirectUri } = options;
 
   // Step 1: OIDC Discovery
   let config: client.Configuration;
@@ -59,8 +59,9 @@ export async function performOIDCFlow(options: OIDCFlowOptions): Promise<StoredT
   const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
   const state = client.randomState();
 
-  // Step 3: Build redirect URI
-  const redirectUri = getRedirectUrl({ port: redirectPort });
+  // Step 3: Extract port from redirect URI for callback server
+  const redirectUrl = new URL(redirectUri);
+  const callbackPort = parseInt(redirectUrl.port, 10) || 3000;
 
   // Step 4: Build authorization URL with PKCE S256
   const authorizationUrl = client.buildAuthorizationUrl(config, {
@@ -76,7 +77,7 @@ export async function performOIDCFlow(options: OIDCFlowOptions): Promise<StoredT
   let returnedState: string | undefined;
   try {
     const result = await getAuthCode({
-      port: redirectPort,
+      port: callbackPort,
       authorizationUrl: authorizationUrl.toString(),
       launch: open,
       timeout: 120000, // 2 minutes for user to complete auth
@@ -149,7 +150,7 @@ export function getOIDCOptionsFromConfig(config: {
   JMAP_OIDC_ISSUER?: string;
   JMAP_OIDC_CLIENT_ID?: string;
   JMAP_OIDC_SCOPE: string;
-  JMAP_OIDC_REDIRECT_PORT: number;
+  JMAP_OIDC_REDIRECT_URI: string;
 }): OIDCFlowOptions | null {
   if (config.JMAP_AUTH_METHOD !== 'oidc') {
     return null;
@@ -163,6 +164,6 @@ export function getOIDCOptionsFromConfig(config: {
     issuerUrl: config.JMAP_OIDC_ISSUER,
     clientId: config.JMAP_OIDC_CLIENT_ID,
     scope: config.JMAP_OIDC_SCOPE,
-    redirectPort: config.JMAP_OIDC_REDIRECT_PORT,
+    redirectUri: config.JMAP_OIDC_REDIRECT_URI,
   };
 }

@@ -59,6 +59,9 @@ async function testConnection(env: Record<string, string>): Promise<{ success: b
     const { createLogger } = await import('../../config/logger.js');
 
     // Build minimal config object for JMAPClient
+    // Fixed redirect URI for OIDC - must be registered with the OIDC provider
+    const OIDC_REDIRECT_URI = 'http://localhost:3000/callback';
+
     const config = {
       JMAP_SESSION_URL: env.JMAP_SESSION_URL,
       JMAP_AUTH_METHOD: env.JMAP_AUTH_METHOD as 'basic' | 'bearer' | 'oidc',
@@ -68,7 +71,7 @@ async function testConnection(env: Record<string, string>): Promise<{ success: b
       JMAP_OIDC_ISSUER: env.JMAP_OIDC_ISSUER,
       JMAP_OIDC_CLIENT_ID: env.JMAP_OIDC_CLIENT_ID,
       JMAP_OIDC_SCOPE: env.JMAP_OIDC_SCOPE || 'openid profile email offline_access',
-      JMAP_OIDC_REDIRECT_PORT: 8085,
+      JMAP_OIDC_REDIRECT_URI: OIDC_REDIRECT_URI,
       JMAP_REQUEST_TIMEOUT: 30000,
       LOG_LEVEL: 'error' as const,
     };
@@ -84,7 +87,7 @@ async function testConnection(env: Record<string, string>): Promise<{ success: b
         issuerUrl: config.JMAP_OIDC_ISSUER!,
         clientId: config.JMAP_OIDC_CLIENT_ID!,
         scope: config.JMAP_OIDC_SCOPE,
-        redirectPort: config.JMAP_OIDC_REDIRECT_PORT,
+        redirectUri: config.JMAP_OIDC_REDIRECT_URI,
       });
       console.log('Authentication successful!\n');
     }

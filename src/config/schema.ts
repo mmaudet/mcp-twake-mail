@@ -27,7 +27,8 @@ export const envSchema = z
       .optional(),
     JMAP_OIDC_CLIENT_ID: z.string().optional(),
     JMAP_OIDC_SCOPE: z.string().default('openid email offline_access'),
-    JMAP_OIDC_REDIRECT_PORT: z.coerce.number().default(3000),
+    // Fixed redirect URI for OIDC - must be registered with the provider
+    JMAP_OIDC_REDIRECT_URI: z.string().url().default('http://localhost:3000/callback'),
     JMAP_REQUEST_TIMEOUT: z.coerce.number().default(30000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   })

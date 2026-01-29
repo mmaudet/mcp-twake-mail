@@ -48,11 +48,9 @@ vi.mock('openid-client', () => ({
 
 // Mock oauth-callback
 const mockGetAuthCode = vi.fn();
-const mockGetRedirectUrl = vi.fn();
 
 vi.mock('oauth-callback', () => ({
   getAuthCode: mockGetAuthCode,
-  getRedirectUrl: mockGetRedirectUrl,
 }));
 
 // Mock open
@@ -79,7 +77,6 @@ describe('oidc-flow', () => {
     mockRandomPKCECodeVerifier.mockReturnValue('test-code-verifier');
     mockCalculatePKCECodeChallenge.mockResolvedValue('test-code-challenge');
     mockRandomState.mockReturnValue('test-state');
-    mockGetRedirectUrl.mockReturnValue('http://localhost:3000/callback');
     mockBuildAuthorizationUrl.mockReturnValue(
       new URL('https://auth.example.com/authorize?client_id=test')
     );
@@ -118,7 +115,7 @@ describe('oidc-flow', () => {
       issuerUrl: 'https://auth.example.com',
       clientId: 'test-client-id',
       scope: 'openid email offline_access',
-      redirectPort: 3000,
+      redirectUri: 'http://localhost:3000/callback',
     };
 
     it('performs full OIDC flow with PKCE S256', async () => {
@@ -310,7 +307,7 @@ describe('oidc-flow', () => {
         JMAP_OIDC_ISSUER: 'https://auth.example.com',
         JMAP_OIDC_CLIENT_ID: 'my-client',
         JMAP_OIDC_SCOPE: 'openid email',
-        JMAP_OIDC_REDIRECT_PORT: 8080,
+        JMAP_OIDC_REDIRECT_URI: 'http://localhost:8080/callback',
       };
 
       const result = getOIDCOptionsFromConfig(config);
@@ -319,7 +316,7 @@ describe('oidc-flow', () => {
         issuerUrl: 'https://auth.example.com',
         clientId: 'my-client',
         scope: 'openid email',
-        redirectPort: 8080,
+        redirectUri: 'http://localhost:8080/callback',
       });
     });
 
@@ -329,7 +326,7 @@ describe('oidc-flow', () => {
         JMAP_OIDC_ISSUER: 'https://auth.example.com',
         JMAP_OIDC_CLIENT_ID: 'my-client',
         JMAP_OIDC_SCOPE: 'openid email',
-        JMAP_OIDC_REDIRECT_PORT: 3000,
+        JMAP_OIDC_REDIRECT_URI: 'http://localhost:3000/callback',
       };
 
       const result = getOIDCOptionsFromConfig(config);
@@ -343,7 +340,7 @@ describe('oidc-flow', () => {
         JMAP_OIDC_ISSUER: undefined,
         JMAP_OIDC_CLIENT_ID: 'my-client',
         JMAP_OIDC_SCOPE: 'openid email',
-        JMAP_OIDC_REDIRECT_PORT: 3000,
+        JMAP_OIDC_REDIRECT_URI: 'http://localhost:3000/callback',
       };
 
       const result = getOIDCOptionsFromConfig(config);
@@ -357,7 +354,7 @@ describe('oidc-flow', () => {
         JMAP_OIDC_ISSUER: 'https://auth.example.com',
         JMAP_OIDC_CLIENT_ID: undefined,
         JMAP_OIDC_SCOPE: 'openid email',
-        JMAP_OIDC_REDIRECT_PORT: 3000,
+        JMAP_OIDC_REDIRECT_URI: 'http://localhost:3000/callback',
       };
 
       const result = getOIDCOptionsFromConfig(config);
