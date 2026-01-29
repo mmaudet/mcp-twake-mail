@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation & JMAP Client** - TypeScript setup, JMAP client with session management and state tracking
 - [x] **Phase 2: Authentication System** - Basic, Bearer, and OIDC authentication with secure token storage
 - [x] **Phase 3: Core Read Operations** - MCP server with read-only email and mailbox tools
-- [ ] **Phase 4: Email Management Operations** - Write operations for marking, deleting, moving, and labeling emails
+- [x] **Phase 4: Email Management Operations** - Write operations for marking, deleting, moving, and labeling emails
 - [ ] **Phase 5: Email Creation & Sending** - Send, reply, and draft creation capabilities
 - [ ] **Phase 6: Advanced Features & Polish** - Threads, attachments, CLI commands, and quality gates
 
@@ -84,10 +84,11 @@ Plans:
   3. AI assistant can move emails between mailboxes
   4. AI assistant can add or remove labels (mailboxes) from emails
   5. AI assistant can create drafts in Drafts mailbox with $draft keyword
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD during planning
+- [x] 04-01-PLAN.md — Mark read/unread and delete email tools with Email/set
+- [x] 04-02-PLAN.md — Move email, add/remove label, and create draft tools
 
 ### Phase 5: Email Creation & Sending
 **Goal**: AI assistant can send new emails and reply to existing threads
@@ -127,6 +128,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Foundation & JMAP Client | 2/2 | Complete | 2026-01-29 |
 | 2. Authentication System | 4/4 | Complete | 2026-01-29 |
 | 3. Core Read Operations | 4/4 | Complete | 2026-01-29 |
-| 4. Email Management Operations | 0/TBD | Not started | - |
+| 4. Email Management Operations | 2/2 | Complete | 2026-01-29 |
 | 5. Email Creation & Sending | 0/TBD | Not started | - |
 | 6. Advanced Features & Polish | 0/TBD | Not started | - |
