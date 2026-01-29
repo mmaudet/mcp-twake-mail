@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 4 Complete - All email management operations implemented
+**Current focus:** Phase 5 In Progress - Email Creation & Sending
 
 ## Current Position
 
-Phase: 4 of 6 (Email Management Operations)
-Plan: 2 of 2 in phase
-Status: Phase complete
-Last activity: 2026-01-29 - Completed 04-02-PLAN.md
+Phase: 5 of 6 (Email Creation & Sending)
+Plan: 1 of 2 in phase
+Status: In progress
+Last activity: 2026-01-29 - Completed 05-01-PLAN.md
 
-Progress: [████████████] 100% (12 of 12 plans)
+Progress: [█████████████░] 93% (13 of 14 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 2.6 minutes
-- Total execution time: 0.52 hours
+- Total plans completed: 13
+- Average duration: 2.5 minutes
+- Total execution time: 0.54 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [████████████] 100% (12 of 12 plans)
 | 02 | 4/4 | 9m 15s | 2.3m |
 | 03 | 4/4 | 10m | 2.5m |
 | 04 | 2/2 | 5m 35s | 2.8m |
+| 05 | 1/2 | 2m | 2.0m |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (1m 22s), 03-03 (2m 31s), 03-04 (2m 18s), 04-01 (2m 25s), 04-02 (3m 10s)
-- Trend: Steady velocity, test-heavy plans slightly longer
+- Last 5 plans: 03-03 (2m 31s), 03-04 (2m 18s), 04-01 (2m 25s), 04-02 (3m 10s), 05-01 (2m)
+- Trend: Steady velocity, consistent execution times
 
 *Updated after each plan completion*
 
@@ -83,6 +84,9 @@ Recent decisions affecting current work:
 - 04-02: add_label/remove_label use JMAP patch syntax (`mailboxIds/[id]`)
 - 04-02: Friendly error message for last-mailbox constraint
 - 04-02: create_draft uses EMAIL_CREATE_ANNOTATIONS (not idempotent)
+- 05-01: Two-phase sending pattern (Email/set create + EmailSubmission/set)
+- 05-01: First Identity from Identity/get used for sending
+- 05-01: Multipart/alternative bodyStructure when both text and HTML provided
 
 ### Pending Todos
 
@@ -94,8 +98,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T19:59:00Z
-Stopped at: Completed 04-02-PLAN.md (Move, Label, and Draft Operations)
+Last session: 2026-01-29T19:12:56Z
+Stopped at: Completed 05-01-PLAN.md (Send Email Tool)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -194,4 +198,16 @@ Plan 04-02 (Move, Label, and Draft Operations) complete with:
 - 7 email operation tools with proper MCP annotations
 - 193 total tests passing
 
-Next: Phase 5 - Integration Testing (if planned) or Phase 6 - Final polish
+## Phase 5 Summary (IN PROGRESS)
+
+Plan 05-01 (Send Email Tool) complete with:
+- Identity type for RFC 8621 Section 6 (Identity/get responses)
+- EmailSubmissionSetResponse type for RFC 8621 Section 7.5
+- send_email tool with two-phase JMAP sending (Email/set + EmailSubmission/set)
+- Support for to, cc, bcc, subject, body, htmlBody inputs
+- Multipart/alternative bodyStructure for text+HTML
+- onSuccessUpdateEmail for atomic Drafts-to-Sent transition
+- urn:ietf:params:jmap:submission capability included
+- 210 total tests passing (no regressions)
+
+Next: Plan 05-02 (Reply Email Tool)
