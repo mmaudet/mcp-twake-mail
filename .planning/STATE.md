@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 2 Complete - Ready for Phase 3 (Email Operations)
+**Current focus:** Phase 3 In Progress - Core Read Operations (Email/Mailbox Transformers complete)
 
 ## Current Position
 
-Phase: 2 of 6 (Authentication System) - COMPLETE
-Plan: 4 of 4 in phase - COMPLETE
-Status: Phase complete
-Last activity: 2026-01-29 - Completed 02-04-PLAN.md
+Phase: 3 of 6 (Core Read Operations)
+Plan: 1 of 3 in phase
+Status: In progress
+Last activity: 2026-01-29 - Completed 03-01-PLAN.md
 
-Progress: [██████░░░░] 60% (6 of 10 plans)
+Progress: [███████░░░] 70% (7 of 10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 2.6 minutes
-- Total execution time: 0.26 hours
+- Total plans completed: 7
+- Average duration: 2.75 minutes
+- Total execution time: 0.32 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [██████░░░░] 60% (6 of 10 plans)
 |-------|-------|-------|----------|
 | 01 | 2/2 | 7m | 3.5m |
 | 02 | 4/4 | 9m 15s | 2.3m |
+| 03 | 1/3 | 3m 49s | 3.8m |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (4m), 02-01 (2m 38s), 02-03 (1m 45s), 02-02 (2m 38s), 02-04 (2m 14s)
-- Trend: Excellent velocity, consistent ~2.3m on auth plans
+- Last 5 plans: 02-01 (2m 38s), 02-03 (1m 45s), 02-02 (2m 38s), 02-04 (2m 14s), 03-01 (3m 49s)
+- Trend: Steady velocity, TDD plan slightly longer due to RED-GREEN-REFACTOR cycle
 
 *Updated after each plan completion*
 
@@ -63,6 +64,9 @@ Recent decisions affecting current work:
 - 02-04: getAuthHeaders() made async - internal change only
 - 02-04: TokenRefresher created in constructor for OIDC auth method
 - 02-04: Fresh token retrieved on every request via ensureValidToken()
+- 03-01: Separate JMAPEmail interface in transformer (not reusing jmap.ts)
+- 03-01: Unknown mailbox roles treated as null (defensive)
+- 03-01: Body content extraction uses first body part only (simplified)
 
 ### Pending Todos
 
@@ -74,8 +78,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T15:25:20Z
-Stopped at: Completed 02-04-PLAN.md (Auth Provider Integration)
+Last session: 2026-01-29T18:31:52Z
+Stopped at: Completed 03-01-PLAN.md (Email and Mailbox Transformers)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -112,4 +116,13 @@ Plan 02-04 (Auth Provider Integration) complete with:
 - Secure token storage with 0600 permissions
 - 92 tests covering all auth components
 
-Next: Phase 3 (Email Operations)
+## Phase 3 Progress (IN PROGRESS)
+
+Plan 03-01 (Email and Mailbox Transformers) complete with:
+- SimplifiedEmail DTO with boolean flags (isRead, isFlagged, isDraft, isAnswered, isForwarded)
+- SimplifiedMailbox DTO with typed role and myRights
+- transformEmail() converting JMAP keywords to boolean flags (TRANS-03)
+- transformMailbox() with role validation
+- 42 new tests (134 total passing)
+
+Next: Plan 03-02 (list-mailboxes MCP tool)
