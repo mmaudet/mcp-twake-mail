@@ -91,6 +91,8 @@ Recent decisions affecting current work:
 - 05-02: Case-insensitive Re: prefix check to avoid duplication
 - 05-02: Self excluded from replyAll using case-insensitive email comparison
 - 05-02: Primary recipient from replyTo if available, fallback to from
+- 06-02: isInline = has cid AND disposition !== 'attachment' (per RFC 8621)
+- 06-02: Filter by excludeInline and mimeTypeFilter with prefix matching
 - 06-03: Commander.js for CLI routing (well-maintained, TypeScript support)
 - 06-03: Default action (no args) starts MCP server for backwards compatibility
 - 06-03: Placeholder subcommands exit with code 1 until implemented
@@ -105,8 +107,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T19:47:09Z
-Stopped at: Completed 06-03-PLAN.md (CLI Foundation)
+Last session: 2026-01-29T19:47:36Z
+Stopped at: Completed 06-02-PLAN.md (Attachment MCP Tool)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -243,8 +245,11 @@ Plan 06-01 (Thread Tools) complete with:
 - Two-step pattern: Thread/get then Email/get for full content
 
 Plan 06-02 (Attachment Tools) complete with:
-- get_attachments tool to list email attachments
-- Attachment metadata: blobId, name, type, size
+- get_attachments tool to list email attachment metadata (ATTACH-01, ATTACH-02)
+- AttachmentMetadata: blobId, name, type, size, isInline
+- RFC 8621 isInline detection (cid + disposition check)
+- excludeInline and mimeTypeFilter parameters for filtering
+- 20 new tests, 290 total tests passing
 
 Plan 06-03 (CLI Foundation) complete with:
 - Commander.js CLI entry point
