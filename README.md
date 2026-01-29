@@ -3,7 +3,9 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
 
-**MCP server for JMAP email — integrate your sovereign email infrastructure with any MCP-compatible AI assistant**
+**MCP server for [Twake.ai](https://www.twake.ai/) — integrate your sovereign JMAP email server with any MCP-compatible AI assistant**
+
+![Twake Mail](assets/twake-mail-screenshot.png)
 
 ## Overview
 
