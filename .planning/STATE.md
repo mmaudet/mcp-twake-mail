@@ -101,6 +101,10 @@ Recent decisions affecting current work:
 - 06-05: Dynamic imports for CLI commands to lazy-load dependencies
 - 06-05: Check command validates env vars before connection test
 - 06-05: [OK]/[WARN]/[FAIL] status indicators for diagnostic output
+- 06-04: @inquirer/prompts for modern TypeScript CLI prompts
+- 06-04: Dynamic import for setup command to keep MCP server lightweight
+- 06-04: Merge with existing Claude Desktop config (not overwrite)
+- 06-04: Platform-aware config path detection (macOS/Windows/Linux)
 
 ### Pending Todos
 
@@ -264,6 +268,15 @@ Plan 06-03 (CLI Foundation) complete with:
 - Placeholder subcommands (setup, auth, check)
 - Entry point routes through CLI, default starts MCP server
 - 226 tests passing (no regressions)
+
+Plan 06-04 (Setup Wizard) complete with:
+- Interactive setup wizard via `npx mcp-twake-mail setup`
+- @inquirer/prompts for JMAP URL, auth method, and credentials
+- OIDC browser flow triggered when OIDC auth selected
+- JMAP connection testing before config generation
+- Claude Desktop config JSON generation
+- Config file writing with merge support
+- 290 tests passing (no regressions)
 
 Plan 06-05 (Auth and Check CLI Commands) complete with:
 - Auth command re-runs OIDC authentication via performOIDCFlow
