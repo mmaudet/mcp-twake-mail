@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 Phase: 6 of 6 (Advanced Features & Polish)
-Plan: 3 of 6 in phase
+Plan: 5 of 6 in phase
 Status: In progress
-Last activity: 2026-01-29 - Completed 06-03-PLAN.md
+Last activity: 2026-01-29 - Completed 06-05-PLAN.md
 
-Progress: [██████████████████░░] 85% (17 of 20 plans)
+Progress: [███████████████████░] 95% (19 of 20 plans)
 
 ## Performance Metrics
 
@@ -98,6 +98,9 @@ Recent decisions affecting current work:
 - 06-03: Placeholder subcommands exit with code 1 until implemented
 - 06-01: Thread/get then Email/get two-step pattern for get_thread_emails
 - 06-01: Map-based lookup to preserve emailIds order (oldest-first)
+- 06-05: Dynamic imports for CLI commands to lazy-load dependencies
+- 06-05: Check command validates env vars before connection test
+- 06-05: [OK]/[WARN]/[FAIL] status indicators for diagnostic output
 
 ### Pending Todos
 
@@ -109,8 +112,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T19:48:06Z
-Stopped at: Completed 06-01-PLAN.md (Thread MCP Tools)
+Last session: 2026-01-29T19:51:14Z
+Stopped at: Completed 06-05-PLAN.md (Auth and Check CLI Commands)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -261,3 +264,11 @@ Plan 06-03 (CLI Foundation) complete with:
 - Placeholder subcommands (setup, auth, check)
 - Entry point routes through CLI, default starts MCP server
 - 226 tests passing (no regressions)
+
+Plan 06-05 (Auth and Check CLI Commands) complete with:
+- Auth command re-runs OIDC authentication via performOIDCFlow
+- Check command validates environment variables for all auth methods
+- Check command tests JMAP connection with fetchSession()
+- Status indicators with [OK]/[WARN]/[FAIL] format
+- Dynamic imports for lazy loading
+- 290 tests passing (no regressions)
