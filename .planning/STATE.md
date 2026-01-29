@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 Phase: 1 of 6 (Foundation & JMAP Client)
-Plan: Ready to plan
-Status: Ready to plan
-Last activity: 2026-01-29 — Roadmap created with 6 phases covering 54 v1 requirements
+Plan: 1 of 2 in phase
+Status: In progress
+Last activity: 2026-01-29 — Completed 01-01-PLAN.md
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: N/A
-- Total execution time: 0.0 hours
+- Total plans completed: 1
+- Average duration: 3 minutes
+- Total execution time: 0.05 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01 | 1/2 | 3m | 3m |
 
 **Recent Trend:**
-- Last 5 plans: None yet
-- Trend: N/A
+- Last 5 plans: 01-01 (3m)
+- Trend: Starting velocity baseline
 
 *Updated after each plan completion*
 
@@ -45,6 +45,9 @@ Recent decisions affecting current work:
 - Phase 1: Custom JMAP client for full control over batching, session management, and error handling
 - Phase 1: All auth methods (Basic, Bearer, OIDC) built in parallel for v1 scope
 - Phase 1: Zod 4 for validation matching mcp-twake-dav patterns
+- 01-01: Pure ESM with type:module (MCP SDK is ESM-only)
+- 01-01: Pino with stderr-only output (MCP stdio requires clean stdout)
+- 01-01: Fail-fast config validation (catch misconfigurations early)
 
 ### Pending Todos
 
@@ -57,5 +60,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Roadmap creation complete, ready for Phase 1 planning
+Stopped at: Completed 01-01-PLAN.md (Project Infrastructure)
 Resume file: None
