@@ -1,0 +1,30 @@
+{
+  "name": "mcp-twake-mail",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./build/index.js",
+  "bin": {
+    "mcp-twake-mail": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "pino": "^10.3.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.10",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.18",
+    "vitest-fetch-mock": "^0.4.0"
+  }
+}
