@@ -8,6 +8,7 @@ import { loadConfig, type Config } from '../config/schema.js';
 import { createLogger, type Logger } from '../config/logger.js';
 import { JMAPClient } from '../jmap/client.js';
 import { formatStartupError } from '../errors.js';
+import { registerAllTools } from './tools/index.js';
 
 /** Server version (matches package.json) */
 const SERVER_VERSION = '0.1.0';
@@ -60,7 +61,10 @@ export async function startServer(): Promise<void> {
     const session = await jmapClient.fetchSession();
     logger.info({ accountId: session.accountId }, 'JMAP connection validated');
 
-    // Step 5: Connect MCP server via stdio transport
+    // Step 5: Register all MCP tools
+    registerAllTools(server, jmapClient, logger);
+
+    // Step 6: Connect MCP server via stdio transport
     const transport = new StdioServerTransport();
     await server.connect(transport);
 
