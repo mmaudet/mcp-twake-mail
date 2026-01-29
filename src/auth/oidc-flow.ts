@@ -17,6 +17,8 @@ export interface OIDCFlowOptions {
   scope: string;
   /** Redirect URI (must be registered with the OIDC provider) */
   redirectUri: string;
+  /** Local port for callback server (overrides port extracted from redirectUri) */
+  localPort?: number;
 }
 
 /**
@@ -36,15 +38,18 @@ export interface OIDCFlowOptions {
  * @throws JMAPError on OIDC flow failures
  */
 export async function performOIDCFlow(options: OIDCFlowOptions): Promise<StoredTokens> {
-  const { issuerUrl, clientId, scope, redirectUri } = options;
+  const { issuerUrl, clientId, scope, redirectUri, localPort } = options;
 
-  // Extract port from redirect URI for local callback server
-  // For remote URIs (ngrok), use default port 3000 since we can't listen on 80/443
+  // Parse redirect URI to extract port and path
   const redirectUrl = new URL(redirectUri);
   const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(redirectUrl.hostname);
 
+  // Determine callback port: explicit localPort > port from URI > defaults
   let callbackPort: number;
-  if (redirectUrl.port) {
+  if (localPort) {
+    // Explicit local port provided (useful for ngrok scenarios)
+    callbackPort = localPort;
+  } else if (redirectUrl.port) {
     // Explicit port in URI - use it
     callbackPort = parseInt(redirectUrl.port, 10);
   } else if (isLocalhost) {
@@ -52,9 +57,11 @@ export async function performOIDCFlow(options: OIDCFlowOptions): Promise<StoredT
     callbackPort = redirectUrl.protocol === 'https:' ? 443 : 80;
   } else {
     // Remote URL (ngrok, etc.) without explicit port - use default 3000
-    // ngrok will forward from the remote URL to localhost:3000
     callbackPort = 3000;
   }
+
+  // Extract callback path from redirect URI (default to /callback if no path)
+  const callbackPath = redirectUrl.pathname || '/callback';
 
   // Step 1: OIDC Discovery
   let config: client.Configuration;
@@ -78,13 +85,15 @@ export async function performOIDCFlow(options: OIDCFlowOptions): Promise<StoredT
   const state = client.randomState();
 
   // Step 4: Build authorization URL with PKCE S256
-  const authorizationUrl = client.buildAuthorizationUrl(config, {
+  const authParams = {
     redirect_uri: redirectUri,
     scope,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256', // CRITICAL: Always S256, never plain (AUTH-04)
     state,
-  });
+  };
+
+  const authorizationUrl = client.buildAuthorizationUrl(config, authParams);
 
   // Step 5: Launch browser and capture callback
   let authCode: string;
@@ -92,12 +101,14 @@ export async function performOIDCFlow(options: OIDCFlowOptions): Promise<StoredT
   try {
     const result = await getAuthCode({
       port: callbackPort,
+      callbackPath,
       authorizationUrl: authorizationUrl.toString(),
       launch: open,
       timeout: 120000, // 2 minutes for user to complete auth
     });
     authCode = result.code;
-    returnedState = result.params?.state;
+    // State can be in params (older oauth-callback) or directly on result (newer versions)
+    returnedState = result.params?.state ?? (result as Record<string, unknown>).state as string | undefined;
   } catch (error) {
     throw JMAPError.oidcFlowError(
       'callback',
@@ -165,6 +176,7 @@ export function getOIDCOptionsFromConfig(config: {
   JMAP_OIDC_CLIENT_ID?: string;
   JMAP_OIDC_SCOPE: string;
   JMAP_OIDC_REDIRECT_URI: string;
+  JMAP_OIDC_LOCAL_PORT?: number;
 }): OIDCFlowOptions | null {
   if (config.JMAP_AUTH_METHOD !== 'oidc') {
     return null;
@@ -179,5 +191,6 @@ export function getOIDCOptionsFromConfig(config: {
     clientId: config.JMAP_OIDC_CLIENT_ID,
     scope: config.JMAP_OIDC_SCOPE,
     redirectUri: config.JMAP_OIDC_REDIRECT_URI,
+    localPort: config.JMAP_OIDC_LOCAL_PORT,
   };
 }
