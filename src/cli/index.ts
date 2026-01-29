@@ -26,13 +26,13 @@ export function createCLI(): Command {
       await startServer();
     });
 
-  // Placeholder subcommands (implemented in later plans)
+  // Setup wizard command
   program
     .command('setup')
     .description('Interactive configuration wizard')
     .action(async () => {
-      console.error('Setup wizard not yet implemented');
-      process.exit(1);
+      const { runSetup } = await import('./commands/setup.js');
+      await runSetup();
     });
 
   program
