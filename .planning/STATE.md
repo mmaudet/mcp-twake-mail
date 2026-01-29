@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 Phase: 2 of 6 (Authentication System)
-Plan: 1 of 3 in phase
+Plan: 3 of 4 in phase (02-02 running in parallel)
 Status: In progress
-Last activity: 2026-01-29 — Completed 02-01-PLAN.md
+Last activity: 2026-01-29 — Completed 02-03-PLAN.md
 
-Progress: [███░░░░░░░] 30% (3 of 10 plans)
+Progress: [████░░░░░░] 40% (4 of 10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 3.2 minutes
-- Total execution time: 0.16 hours
+- Total plans completed: 4
+- Average duration: 2.9 minutes
+- Total execution time: 0.19 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 2/2 | 7m | 3.5m |
-| 02 | 1/3 | 2m 38s | 2.6m |
+| 02 | 2/4 | 4m 23s | 2.2m |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3m), 01-02 (4m), 02-01 (2m 38s)
-- Trend: Good velocity maintained
+- Last 5 plans: 01-01 (3m), 01-02 (4m), 02-01 (2m 38s), 02-03 (1m 45s)
+- Trend: Good velocity maintained, faster on focused plans
 
 *Updated after each plan completion*
 
@@ -54,6 +54,9 @@ Recent decisions affecting current work:
 - 01-02: request() accepts methodCalls array for natural batching
 - 02-01: Token file at ~/.mcp-twake-mail/tokens.json with 0600 permissions
 - 02-01: OIDC requires issuer and client ID; token comes from OAuth flow
+- 02-03: 60-second expiry buffer for proactive token refresh
+- 02-03: Promise-based mutex for concurrent refresh serialization
+- 02-03: Keep old refresh token if server doesn't rotate
 
 ### Pending Todos
 
@@ -65,8 +68,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T15:17:00Z
-Stopped at: Completed 02-01-PLAN.md (Auth Foundation Components)
+Last session: 2026-01-29T15:21:00Z
+Stopped at: Completed 02-03-PLAN.md (Token Refresh with Mutex)
 Resume file: None
 
 ## Phase 2 Progress
@@ -77,4 +80,12 @@ Plan 02-01 (Auth Foundation) complete with:
 - Auth-specific error factories with re-auth instructions
 - 57 passing tests (47 + 10 new)
 
-Next: 02-02 (PKCE OAuth Flow)
+Plan 02-02 (PKCE OAuth Flow) running in parallel.
+
+Plan 02-03 (Token Refresh) complete with:
+- TokenRefresher class with ensureValidToken()
+- 60-second expiry buffer for proactive refresh
+- Promise-based mutex prevents concurrent refresh races
+- 76 passing tests (57 + 19 new)
+
+Next: 02-04 (Auth Provider Integration)
