@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** AI assistants can interact with JMAP email servers through natural language — searching emails, composing replies, organizing messages — without users leaving their AI workflow.
-**Current focus:** Phase 3 Complete - Core Read Operations (All MCP read tools implemented)
+**Current focus:** Phase 4 - Email Management Operations (Write tools for email modification)
 
 ## Current Position
 
-Phase: 3 of 6 (Core Read Operations)
-Plan: 4 of 4 in phase (COMPLETE)
-Status: Phase complete
-Last activity: 2026-01-29 - Completed 03-04-PLAN.md
+Phase: 4 of 6 (Email Management Operations)
+Plan: 1 of 2 in phase
+Status: In progress
+Last activity: 2026-01-29 - Completed 04-01-PLAN.md
 
-Progress: [██████████] 100% (10 of 10 plans)
+Progress: [███████████░] 92% (11 of 12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 2.5 minutes
-- Total execution time: 0.42 hours
+- Total execution time: 0.46 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [██████████] 100% (10 of 10 plans)
 | 01 | 2/2 | 7m | 3.5m |
 | 02 | 4/4 | 9m 15s | 2.3m |
 | 03 | 4/4 | 10m | 2.5m |
+| 04 | 1/2 | 2m 25s | 2.4m |
 
 **Recent Trend:**
-- Last 5 plans: 02-04 (2m 14s), 03-01 (3m 49s), 03-02 (1m 22s), 03-03 (2m 31s), 03-04 (2m 18s)
+- Last 5 plans: 03-01 (3m 49s), 03-02 (1m 22s), 03-03 (2m 31s), 03-04 (2m 18s), 04-01 (2m 25s)
 - Trend: Steady velocity, non-TDD plans faster
 
 *Updated after each plan completion*
@@ -75,6 +76,9 @@ Recent decisions affecting current work:
 - 03-03: Separate FULL_EMAIL_PROPERTIES vs SUMMARY_EMAIL_PROPERTIES lists
 - 03-03: Common EMAIL_READ_ANNOTATIONS constant for all email tools
 - 03-04: Client-side role filtering after Mailbox/get (JMAP doesn't support server-side mailbox filtering)
+- 04-01: JMAP patch syntax for keyword updates ('keywords/$seen': true/null)
+- 04-01: Soft delete by default (move to Trash), permanent=true for destroy
+- 04-01: Fallback to permanent delete if Trash mailbox not found
 
 ### Pending Todos
 
@@ -86,8 +90,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29T18:39:49Z
-Stopped at: Completed 03-04-PLAN.md (Mailbox MCP Tools)
+Last session: 2026-01-29T18:54:36Z
+Stopped at: Completed 04-01-PLAN.md (Email Write Operations)
 Resume file: None
 
 ## Phase 2 Summary (COMPLETE)
@@ -162,3 +166,15 @@ Plan 03-04 (Mailbox MCP Tools) complete with:
 - 176 tests covering all components
 
 Next: Phase 4 - Write Operations (move_email, mark_read, mark_flagged, delete_email)
+
+## Phase 4 Summary (IN PROGRESS)
+
+Plan 04-01 (Email Write Operations) complete with:
+- EmailSetResponse type for Email/set responses (RFC 8621 Section 4.3)
+- mark_as_read tool using patch syntax 'keywords/$seen': true (EMAIL-06)
+- mark_as_unread tool using patch syntax 'keywords/$seen': null (EMAIL-07)
+- delete_email tool with soft delete (Trash) and permanent delete (EMAIL-05)
+- EMAIL_WRITE_ANNOTATIONS and EMAIL_DESTRUCTIVE_ANNOTATIONS constants
+- registerEmailOperationTools() integrated in index.ts
+
+Next: Plan 04-02 - Move and label operations (move_email, add_label, remove_label)
