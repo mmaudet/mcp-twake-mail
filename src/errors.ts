@@ -10,6 +10,84 @@ export class JMAPError extends Error {
     this.type = type;
     this.fix = fix;
   }
+
+  /**
+   * Create a JMAPError for HTTP-level errors (4xx, 5xx responses)
+   */
+  static httpError(status: number, statusText: string): JMAPError {
+    const message = `HTTP ${status}: ${statusText}`;
+
+    if (status === 401) {
+      return new JMAPError(
+        message,
+        'unauthorized',
+        'Check your credentials. For basic auth: verify JMAP_USERNAME and JMAP_PASSWORD. For bearer: verify JMAP_TOKEN is valid.'
+      );
+    }
+
+    if (status === 403) {
+      return new JMAPError(
+        message,
+        'forbidden',
+        'You do not have permission to access this resource. Check your account permissions.'
+      );
+    }
+
+    if (status === 404) {
+      return new JMAPError(
+        message,
+        'notFound',
+        'The JMAP endpoint was not found. Verify JMAP_SESSION_URL is correct.'
+      );
+    }
+
+    if (status >= 500) {
+      return new JMAPError(
+        message,
+        'serverError',
+        'The JMAP server encountered an error. Try again later or contact the server administrator.'
+      );
+    }
+
+    return new JMAPError(
+      message,
+      'httpError',
+      'An HTTP error occurred. Check the server URL and try again.'
+    );
+  }
+
+  /**
+   * Create a JMAPError for JMAP method-level errors
+   */
+  static methodError(type: string, description?: string): JMAPError {
+    const message = description || `JMAP method error: ${type}`;
+
+    const fixes: Record<string, string> = {
+      stateMismatch: 'The state is stale. Refetch the data and try again.',
+      cannotCalculateChanges: 'State is too old. Perform a full sync instead of incremental.',
+      notFound: 'The requested item was not found. It may have been deleted.',
+      forbidden: 'You do not have permission for this operation.',
+      accountNotFound: 'The account ID is invalid. Refetch the session.',
+      noMailAccount: 'The server does not have a mail account. Check the JMAP server configuration.',
+      unknownCapability: 'The server does not support the requested capability.',
+      invalidArguments: 'The request arguments are invalid. Check the request parameters.',
+    };
+
+    const fix = fixes[type] || 'A JMAP error occurred. Check the error details and try again.';
+
+    return new JMAPError(message, type, fix);
+  }
+
+  /**
+   * Create a JMAPError for timeout errors
+   */
+  static timeout(operation: string): JMAPError {
+    return new JMAPError(
+      `${operation} timed out`,
+      'timeout',
+      'The operation took too long. Check your network connection and try again. If the issue persists, increase JMAP_REQUEST_TIMEOUT.'
+    );
+  }
 }
 
 export function formatStartupError(error: Error, sessionUrl?: string): string {
