@@ -47,12 +47,64 @@ export function parseWwwAuthenticate(
 }
 
 /**
+ * Try common SSO subdomain patterns for OIDC discovery.
+ * Many organizations use predictable subdomain patterns for their SSO.
+ *
+ * @param domain The base domain to check
+ * @param timeout Request timeout in ms
+ * @returns OidcDiscoveryResult or null if no valid OIDC endpoint found
+ */
+async function tryCommonSsoPatterns(
+  domain: string,
+  timeout: number
+): Promise<OidcDiscoveryResult | null> {
+  // Extract base domain (remove subdomain like 'jmap.' or 'mail.')
+  const parts = domain.split('.');
+  const baseDomain = parts.length > 2 ? parts.slice(-2).join('.') : domain;
+
+  // Common SSO subdomain patterns
+  const ssoPatterns = ['sso', 'auth', 'login', 'id', 'accounts'];
+
+  for (const pattern of ssoPatterns) {
+    const issuerUrl = `https://${pattern}.${baseDomain}`;
+    const discoveryUrl = `${issuerUrl}/.well-known/openid-configuration`;
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const response = await fetch(discoveryUrl, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const config = await response.json();
+        // Verify it's a valid OIDC config with issuer field
+        if (config.issuer) {
+          return {
+            issuer: config.issuer,
+            method: 'well-known-oidc',
+          };
+        }
+      }
+    } catch {
+      // This pattern didn't work, try next
+    }
+  }
+
+  return null;
+}
+
+/**
  * Discover OAuth authorization server from JMAP resource URL.
- * Implements RFC 9728 Protected Resource Metadata discovery.
+ * Implements RFC 9728 Protected Resource Metadata discovery with fallbacks.
  *
  * Discovery order:
  * 1. Try /.well-known/oauth-protected-resource at resource origin
  * 2. If that fails, try fetching JMAP URL to trigger 401 with WWW-Authenticate
+ * 3. If that fails, try common SSO subdomain patterns (sso., auth., login.)
  *
  * @param jmapUrl The JMAP session or API URL
  * @param timeout Request timeout in ms (default 10000)
@@ -95,11 +147,11 @@ export async function discoverOAuthFromResource(
           };
         }
       }
-    } catch (err) {
+    } catch {
       // Protected resource metadata failed, try WWW-Authenticate fallback
     }
 
-    // Fallback: Try fetching JMAP URL directly to get 401 with WWW-Authenticate
+    // Fallback 1: Try fetching JMAP URL directly to get 401 with WWW-Authenticate
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -123,13 +175,19 @@ export async function discoverOAuthFromResource(
           }
         }
       }
-    } catch (err) {
+    } catch {
       // WWW-Authenticate fallback also failed
+    }
+
+    // Fallback 2: Try common SSO subdomain patterns
+    const ssoResult = await tryCommonSsoPatterns(url.hostname, timeout);
+    if (ssoResult) {
+      return ssoResult;
     }
 
     // No OAuth info found
     return null;
-  } catch (err) {
+  } catch {
     // URL parsing or other error
     return null;
   }

@@ -11,7 +11,7 @@ export interface JmapDiscoveryResult {
 export interface OidcDiscoveryResult {
   issuer: string;
   clientId?: string; // Optional - often not discoverable
-  method: 'protected-resource' | 'www-authenticate' | 'manual';
+  method: 'protected-resource' | 'www-authenticate' | 'well-known-oidc' | 'manual';
 }
 
 export class DiscoveryError extends Error {
