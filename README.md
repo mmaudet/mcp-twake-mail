@@ -108,12 +108,12 @@ Password: ********
 Testing connection...
 Connected! Account ID: abc123
 
-Server name for Claude config [twake-mail]: twake-mail
+Server name for Claude config [mcp-twake-mail]: mcp-twake-mail
 
 --- Generated Claude Desktop Config ---
 {
   "mcpServers": {
-    "twake-mail": {
+    "mcp-twake-mail": {
       "command": "npx",
       "args": ["-y", "mcp-twake-mail"],
       "env": {
@@ -197,7 +197,7 @@ Add the following to your Claude Desktop configuration file:
 ```json
 {
   "mcpServers": {
-    "twake-mail": {
+    "mcp-twake-mail": {
       "command": "node",
       "args": ["/path/to/mcp-twake-mail/build/index.js"],
       "env": {
@@ -216,7 +216,7 @@ Add the following to your Claude Desktop configuration file:
 ```json
 {
   "mcpServers": {
-    "twake-mail": {
+    "mcp-twake-mail": {
       "command": "node",
       "args": ["/path/to/mcp-twake-mail/build/index.js"],
       "env": {
