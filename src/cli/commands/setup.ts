@@ -17,6 +17,8 @@ import {
   promptSetupMode,
   promptEmail,
   promptConfirmDiscovery,
+  promptDefaultFrom,
+  promptSignaturePath,
 } from '../prompts/setup-wizard.js';
 
 /**
@@ -113,7 +115,7 @@ export async function runSetup(): Promise<void> {
   const mode = await promptSetupMode();
 
   let jmapUrl: string;
-  let discoveredOidc: { issuer?: string } = {};
+  const discoveredOidc: { issuer?: string } = {};
 
   if (mode === 'auto') {
     // Auto-discovery flow
@@ -172,7 +174,19 @@ export async function runSetup(): Promise<void> {
     env.JMAP_OIDC_REDIRECT_URI = oidcConfig.redirectUri;
   }
 
-  // Step 4: Test connection
+  // Step 4: Identity configuration (optional)
+  console.log('\n--- Identity Configuration ---');
+  const defaultFrom = await promptDefaultFrom();
+  if (defaultFrom) {
+    env.JMAP_DEFAULT_FROM = defaultFrom;
+  }
+
+  const signaturePath = await promptSignaturePath();
+  if (signaturePath) {
+    env.JMAP_SIGNATURE_PATH = signaturePath;
+  }
+
+  // Step 5: Test connection
   console.log('\nTesting connection...');
   const testResult = await testConnection(env);
 
@@ -184,10 +198,10 @@ export async function runSetup(): Promise<void> {
 
   console.log('\nConnection successful!\n');
 
-  // Step 5: Server name for Claude config
+  // Step 6: Server name for Claude config
   const serverName = await promptServerName();
 
-  // Step 6: Generate config
+  // Step 7: Generate config
   const config = generateClaudeConfig(serverName, env);
   const configJson = JSON.stringify(config, null, 2);
 
@@ -195,7 +209,7 @@ export async function runSetup(): Promise<void> {
   console.log(configJson);
   console.log('---------------------------------------\n');
 
-  // Step 7: Optionally write to Claude Desktop config
+  // Step 8: Optionally write to Claude Desktop config
   const shouldWrite = await promptWriteConfig();
 
   if (shouldWrite) {
