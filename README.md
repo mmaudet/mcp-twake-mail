@@ -1,5 +1,6 @@
 # mcp-twake-mail
 
+[![npm version](https://img.shields.io/npm/v/mcp-twake-mail)](https://www.npmjs.com/package/mcp-twake-mail)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
 
