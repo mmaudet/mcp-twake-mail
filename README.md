@@ -17,6 +17,8 @@ mcp-twake-mail is a Model Context Protocol (MCP) server that connects any MCP-co
 - Works with any MCP-compatible AI assistant
 - Full control over email data — read, write, send, and organize
 - Multiple authentication methods: Basic, Bearer token, or OIDC
+- **Auto-discovery** — configure with just your email address
+- **Email signatures** — automatic Markdown signature injection
 - Secure HTTPS-only connections
 
 ## Features
@@ -48,6 +50,9 @@ mcp-twake-mail is a Model Context Protocol (MCP) server that connects any MCP-co
 - `download_attachment` - Download attachment content (auto-saves large files to disk)
 
 **Advanced Features:**
+- **Auto-discovery** — Configure with just your email address (DNS SRV + .well-known/jmap)
+- **Email signatures** — Markdown signature files automatically appended to emails
+- **Default sender identity** — Configure default "from" address
 - OIDC authentication with PKCE (S256) for enterprise SSO
 - Automatic token refresh for OIDC sessions
 - Thread-based email grouping
@@ -84,54 +89,58 @@ npx mcp-twake-mail setup
 ```
 
 The wizard will:
-1. Ask for your JMAP server session URL
+1. **Auto-discover** your JMAP server from your email address (or enter manually)
 2. Ask for your authentication method (Basic, Bearer, or OIDC)
 3. Collect the required credentials
-4. Test the connection to your JMAP server
-5. Generate and optionally write the configuration to your Claude Desktop config file
+4. **Configure default sender** and optional email signature
+5. Test the connection to your JMAP server
+6. Generate and optionally write the configuration to your Claude Desktop config file
 
-Example session:
+### Auto-Discovery Mode (New!)
+
+The setup wizard now supports **auto-discovery** — just provide your email address and the system will automatically find your JMAP server:
+
 ```
 === MCP Twake Mail Setup Wizard ===
 
-JMAP Session URL: https://jmap.example.com/jmap/session
+Setup mode:
+  1. Auto-discover from email address (Recommended)
+  2. Manual configuration
+Choose [1-2]: 1
 
-Authentication method:
-  1. Basic (username/password)
-  2. Bearer token (JWT)
-  3. OIDC (OpenID Connect)
-Choose [1-3]: 1
+Email address: user@example.com
 
-Username: user@example.com
-Password: ********
+Discovering JMAP server...
+✓ Found JMAP server: https://jmap.example.com/jmap/session
+✓ Found OIDC issuer: https://sso.example.com
 
-Testing connection...
-Connected! Account ID: abc123
-
-Server name for Claude config [mcp-twake-mail]: mcp-twake-mail
-
---- Generated Claude Desktop Config ---
-{
-  "mcpServers": {
-    "mcp-twake-mail": {
-      "command": "npx",
-      "args": ["-y", "mcp-twake-mail"],
-      "env": {
-        "JMAP_SESSION_URL": "https://jmap.example.com/jmap/session",
-        "JMAP_AUTH_METHOD": "basic",
-        "JMAP_USERNAME": "user@example.com",
-        "JMAP_PASSWORD": "********"
-      }
-    }
-  }
-}
----------------------------------------
-
-Write to Claude Desktop config? [Y/n]: y
-
-Config written successfully!
-Restart Claude Desktop to load the new configuration.
+Use discovered settings? [Y/n]: y
 ```
+
+The auto-discovery uses:
+- **DNS SRV** lookup: `_jmap._tcp.{domain}`
+- **.well-known/jmap** endpoint
+- **OAuth metadata** discovery for OIDC configuration
+
+See [docs/auto-discovery.md](docs/auto-discovery.md) for details.
+
+### Email Signature Support (New!)
+
+Configure an optional Markdown signature file that will be automatically appended to all emails:
+
+```
+Configure email signature file? [y/N]: y
+Path to signature file (Markdown format): ~/.mcp-twake-mail/signature.md
+```
+
+Example signature file (`~/.mcp-twake-mail/signature.md`):
+```markdown
+**John Doe**
+Software Engineer
+[john.doe@example.com](mailto:john.doe@example.com)
+```
+
+The signature is automatically converted to HTML for rich emails and plain text for simple emails.
 
 ### CLI Commands
 
@@ -174,9 +183,18 @@ For enterprise SSO with OpenID Connect (PKCE S256):
 | `JMAP_OIDC_ISSUER` | Yes | OIDC provider issuer URL | `https://sso.example.com` |
 | `JMAP_OIDC_CLIENT_ID` | Yes | OIDC client ID | `my-client-id` |
 | `JMAP_OIDC_SCOPE` | No | OIDC scopes | `openid profile email offline_access` |
-| `JMAP_OIDC_REDIRECT_URI` | No | Callback URI for OIDC flow | `http://localhost:5678/callback` |
+| `JMAP_OIDC_REDIRECT_URI` | No | Callback URI for OIDC flow | `http://localhost:3000/callback` |
 
-#### Optional
+See [docs/oidc-configuration.md](docs/oidc-configuration.md) for detailed OIDC setup instructions.
+
+#### Identity & Signature (Optional)
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `JMAP_DEFAULT_FROM` | No | Default sender email address | `user@example.com` |
+| `JMAP_SIGNATURE_PATH` | No | Path to Markdown signature file | `~/.mcp-twake-mail/signature.md` |
+
+#### Other Options
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -198,13 +216,15 @@ Add the following to your Claude Desktop configuration file:
 {
   "mcpServers": {
     "mcp-twake-mail": {
-      "command": "node",
-      "args": ["/path/to/mcp-twake-mail/build/index.js"],
+      "command": "npx",
+      "args": ["-y", "mcp-twake-mail"],
       "env": {
         "JMAP_SESSION_URL": "https://jmap.example.com/jmap/session",
         "JMAP_AUTH_METHOD": "basic",
         "JMAP_USERNAME": "user@example.com",
-        "JMAP_PASSWORD": "your-password"
+        "JMAP_PASSWORD": "your-password",
+        "JMAP_DEFAULT_FROM": "user@example.com",
+        "JMAP_SIGNATURE_PATH": "~/.mcp-twake-mail/signature.md"
       }
     }
   }
@@ -217,15 +237,16 @@ Add the following to your Claude Desktop configuration file:
 {
   "mcpServers": {
     "mcp-twake-mail": {
-      "command": "node",
-      "args": ["/path/to/mcp-twake-mail/build/index.js"],
+      "command": "npx",
+      "args": ["-y", "mcp-twake-mail"],
       "env": {
         "JMAP_SESSION_URL": "https://jmap.example.com/jmap/session",
         "JMAP_AUTH_METHOD": "oidc",
         "JMAP_OIDC_ISSUER": "https://sso.example.com",
         "JMAP_OIDC_CLIENT_ID": "my-client-id",
         "JMAP_OIDC_SCOPE": "openid profile email offline_access",
-        "JMAP_OIDC_REDIRECT_URI": "http://localhost:5678/callback"
+        "JMAP_DEFAULT_FROM": "user@example.com",
+        "JMAP_SIGNATURE_PATH": "~/.mcp-twake-mail/signature.md"
       }
     }
   }
@@ -259,6 +280,11 @@ Once configured, you can ask Claude natural language questions about your email:
 **Attachments:**
 - "What attachments are in this email?"
 - "Download the PDF attachment"
+
+## Documentation
+
+- [Auto-Discovery](docs/auto-discovery.md) — How JMAP and OIDC auto-discovery works
+- [OIDC Configuration](docs/oidc-configuration.md) — Detailed OIDC/OAuth setup guide
 
 ## Available Tools
 
@@ -302,10 +328,12 @@ mcp-twake-mail is built with a layered architecture:
 2. **Logging Layer** - Pino logger configured for stderr output (prevents stdout contamination in MCP stdio transport)
 3. **Authentication Layer** - Multi-method auth support (Basic, Bearer, OIDC with PKCE)
 4. **Token Management** - Automatic token refresh for OIDC with secure token storage
-5. **JMAP Client Layer** - Session management, request batching, blob download support
-6. **Transformation Layer** - Email/Mailbox data transformation for AI-friendly output
-7. **MCP Tool Layer** - 16 MCP tools exposing email functionality with tool annotations
-8. **Entry Point** - MCP server initialization with stdio transport
+5. **Discovery Layer** - Auto-discovery via DNS SRV, .well-known/jmap, and OAuth metadata
+6. **JMAP Client Layer** - Session management, request batching, blob download support
+7. **Signature Layer** - Markdown-to-HTML conversion for email signatures
+8. **Transformation Layer** - Email/Mailbox data transformation for AI-friendly output
+9. **MCP Tool Layer** - 17 MCP tools exposing email functionality with tool annotations
+10. **Entry Point** - MCP server initialization with stdio transport
 
 **Key design decisions:**
 - ESM modules with `.js` import extensions (required by MCP SDK)
