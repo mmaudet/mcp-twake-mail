@@ -9,6 +9,7 @@ import { createLogger, type Logger } from '../config/logger.js';
 import { JMAPClient } from '../jmap/client.js';
 import { formatStartupError } from '../errors.js';
 import { registerAllTools } from './tools/index.js';
+import { loadSignature, type SignatureContent } from '../signature/index.js';
 
 /** Server version (matches package.json) */
 const SERVER_VERSION = '0.1.0';
@@ -20,12 +21,12 @@ const SERVER_NAME = 'mcp-twake-mail';
  * Create MCP server instance with JMAP client.
  * @param config Validated configuration
  * @param logger Pino logger (stderr only)
- * @returns Object with server and jmapClient
+ * @returns Object with server, jmapClient, and signatureContent
  */
-export function createMCPServer(
+export async function createMCPServer(
   config: Config,
   logger: Logger
-): { server: McpServer; jmapClient: JMAPClient } {
+): Promise<{ server: McpServer; jmapClient: JMAPClient; signatureContent?: SignatureContent }> {
   const server = new McpServer({
     name: SERVER_NAME,
     version: SERVER_VERSION,
@@ -33,7 +34,10 @@ export function createMCPServer(
 
   const jmapClient = new JMAPClient(config, logger);
 
-  return { server, jmapClient };
+  // Load signature if configured
+  const signatureContent = await loadSignature(config.JMAP_SIGNATURE_PATH, logger);
+
+  return { server, jmapClient, signatureContent };
 }
 
 /**
@@ -55,14 +59,17 @@ export async function startServer(): Promise<void> {
     logger.info({ version: SERVER_VERSION }, 'Starting mcp-twake-mail server');
 
     // Step 3: Create MCP server and JMAP client
-    const { server, jmapClient } = createMCPServer(config, logger);
+    const { server, jmapClient, signatureContent } = await createMCPServer(config, logger);
 
     // Step 4: Validate JMAP connection BEFORE accepting MCP requests
     const session = await jmapClient.fetchSession();
     logger.info({ accountId: session.accountId }, 'JMAP connection validated');
 
     // Step 5: Register all MCP tools
-    registerAllTools(server, jmapClient, logger);
+    registerAllTools(server, jmapClient, logger, {
+      signatureContent,
+      defaultFrom: config.JMAP_DEFAULT_FROM,
+    });
 
     // Step 6: Connect MCP server via stdio transport
     const transport = new StdioServerTransport();
