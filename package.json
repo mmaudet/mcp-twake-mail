@@ -1,11 +1,17 @@
 {
   "name": "mcp-twake-mail",
   "version": "0.1.0",
+  "description": "MCP server for Twake.ai — integrate your sovereign JMAP email server with any MCP-compatible AI assistant",
   "type": "module",
   "main": "./build/index.js",
   "bin": {
     "mcp-twake-mail": "./build/index.js"
   },
+  "files": [
+    "build",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node build/index.js",
@@ -14,7 +20,30 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint:fix": "eslint src/ --fix",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "jmap",
+    "email",
+    "twake",
+    "ai",
+    "claude",
+    "assistant",
+    "mail",
+    "sovereign"
+  ],
+  "author": "LINAGORA <https://linagora.com>",
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/linagora/mcp-twake-mail.git"
+  },
+  "homepage": "https://github.com/linagora/mcp-twake-mail#readme",
+  "bugs": {
+    "url": "https://github.com/linagora/mcp-twake-mail/issues"
   },
   "engines": {
     "node": ">=20.0.0"
