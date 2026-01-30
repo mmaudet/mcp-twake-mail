@@ -7,6 +7,96 @@ import { input, select, password, confirm } from '@inquirer/prompts';
 /** Auth method choices for the wizard */
 export type AuthMethod = 'oidc' | 'basic' | 'bearer';
 
+/** Setup mode: auto-discover or manual configuration */
+export type SetupMode = 'auto' | 'manual';
+
+/**
+ * Prompt for setup mode: auto-discover or manual configuration.
+ */
+export async function promptSetupMode(): Promise<SetupMode> {
+  return select({
+    message: 'Setup mode:',
+    choices: [
+      { value: 'auto' as const, name: 'Auto-discover from email address (recommended)' },
+      { value: 'manual' as const, name: 'Manual configuration' },
+    ],
+  });
+}
+
+/**
+ * Prompt for email address for auto-discovery.
+ */
+export async function promptEmail(): Promise<string> {
+  return input({
+    message: 'Email address:',
+    validate: (value) => {
+      // Basic email validation
+      if (!value.includes('@') || !value.split('@')[1]?.includes('.')) {
+        return 'Please enter a valid email address';
+      }
+      return true;
+    },
+  });
+}
+
+/**
+ * Prompt to confirm or edit discovered settings.
+ */
+export async function promptConfirmDiscovery(settings: {
+  jmapUrl: string;
+  oidcIssuer?: string;
+}): Promise<{ confirmed: boolean; jmapUrl: string; oidcIssuer?: string }> {
+  console.log('\nDiscovered settings:');
+  console.log(`  JMAP URL: ${settings.jmapUrl}`);
+  if (settings.oidcIssuer) {
+    console.log(`  OIDC Issuer: ${settings.oidcIssuer}`);
+  } else {
+    console.log('  OIDC Issuer: Not discovered (will need manual entry)');
+  }
+  console.log('');
+
+  const useDiscovered = await confirm({
+    message: 'Use these settings?',
+    default: true,
+  });
+
+  if (useDiscovered) {
+    return { confirmed: true, ...settings };
+  }
+
+  // Allow editing
+  const jmapUrl = await input({
+    message: 'JMAP Session URL:',
+    default: settings.jmapUrl,
+    validate: (value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        return 'Please enter a valid URL';
+      }
+    },
+  });
+
+  const oidcIssuer = settings.oidcIssuer
+    ? await input({
+        message: 'OIDC Issuer URL:',
+        default: settings.oidcIssuer,
+        validate: (value) => {
+          if (!value) return true; // Optional
+          try {
+            new URL(value);
+            return true;
+          } catch {
+            return 'Please enter a valid URL';
+          }
+        },
+      })
+    : undefined;
+
+  return { confirmed: true, jmapUrl, oidcIssuer };
+}
+
 /**
  * Prompt for JMAP session URL with validation.
  */
@@ -70,7 +160,7 @@ export async function promptBearerToken(): Promise<string> {
 /**
  * Prompt for OIDC configuration.
  */
-export async function promptOidcAuth(): Promise<{
+export async function promptOidcAuth(defaultIssuer?: string): Promise<{
   issuer: string;
   clientId: string;
   scope: string;
@@ -78,7 +168,7 @@ export async function promptOidcAuth(): Promise<{
 }> {
   const issuer = await input({
     message: 'OIDC Issuer URL:',
-    default: 'https://sso.linagora.com',
+    default: defaultIssuer || 'https://sso.linagora.com',
     validate: (value) => {
       try {
         new URL(value);
