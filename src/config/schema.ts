@@ -33,6 +33,9 @@ export const envSchema = z
     JMAP_OIDC_LOCAL_PORT: z.coerce.number().optional(),
     JMAP_REQUEST_TIMEOUT: z.coerce.number().default(30000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+    // Email identity and signature configuration
+    JMAP_DEFAULT_FROM: z.string().email('JMAP_DEFAULT_FROM must be a valid email address').optional(),
+    JMAP_SIGNATURE_PATH: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     // Conditional validation: basic auth requires username+password
