@@ -14,6 +14,9 @@ import {
   promptOidcAuth,
   promptWriteConfig,
   promptServerName,
+  promptSetupMode,
+  promptEmail,
+  promptConfirmDiscovery,
 } from '../prompts/setup-wizard.js';
 
 /**
@@ -106,8 +109,44 @@ async function testConnection(env: Record<string, string>): Promise<{ success: b
 export async function runSetup(): Promise<void> {
   console.log('\n=== MCP Twake Mail Setup Wizard ===\n');
 
-  // Step 1: JMAP URL
-  const jmapUrl = await promptJmapUrl();
+  // Step 1: Choose setup mode
+  const mode = await promptSetupMode();
+
+  let jmapUrl: string;
+  let discoveredOidc: { issuer?: string } = {};
+
+  if (mode === 'auto') {
+    // Auto-discovery flow
+    const email = await promptEmail();
+    console.log('\nDiscovering settings...');
+
+    try {
+      // Dynamic import to avoid loading discovery in non-auto mode
+      const { discoverFromEmail } = await import('../../discovery/index.js');
+      const result = await discoverFromEmail(email);
+
+      const confirmed = await promptConfirmDiscovery({
+        jmapUrl: result.jmap.sessionUrl,
+        oidcIssuer: result.oidc?.issuer,
+      });
+
+      jmapUrl = confirmed.jmapUrl;
+      if (confirmed.oidcIssuer) {
+        discoveredOidc.issuer = confirmed.oidcIssuer;
+      }
+
+      console.log(`\nUsing discovered settings for ${result.domain}\n`);
+    } catch (error) {
+      console.error(`\nAuto-discovery failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.log('Falling back to manual configuration...\n');
+
+      // Fall back to manual mode
+      jmapUrl = await promptJmapUrl();
+    }
+  } else {
+    // Manual mode - existing flow
+    jmapUrl = await promptJmapUrl();
+  }
 
   // Step 2: Auth method
   const authMethod = await promptAuthMethod();
@@ -125,11 +164,12 @@ export async function runSetup(): Promise<void> {
   } else if (authMethod === 'bearer') {
     env.JMAP_BEARER_TOKEN = await promptBearerToken();
   } else if (authMethod === 'oidc') {
-    const { issuer, clientId, scope, redirectUri } = await promptOidcAuth();
-    env.JMAP_OIDC_ISSUER = issuer;
-    env.JMAP_OIDC_CLIENT_ID = clientId;
-    env.JMAP_OIDC_SCOPE = scope;
-    env.JMAP_OIDC_REDIRECT_URI = redirectUri;
+    // Pre-fill discovered OIDC issuer if available
+    const oidcConfig = await promptOidcAuth(discoveredOidc.issuer);
+    env.JMAP_OIDC_ISSUER = oidcConfig.issuer;
+    env.JMAP_OIDC_CLIENT_ID = oidcConfig.clientId;
+    env.JMAP_OIDC_SCOPE = oidcConfig.scope;
+    env.JMAP_OIDC_REDIRECT_URI = oidcConfig.redirectUri;
   }
 
   // Step 4: Test connection
