@@ -13,6 +13,7 @@ import type {
   Identity,
   EmailSubmissionSetResponse,
 } from '../../types/jmap.js';
+import type { SignatureContent } from '../../signature/index.js';
 
 /**
  * Annotations for send operations (not idempotent - each call sends a new email).
@@ -34,16 +35,46 @@ const SUBMISSION_USING = [
 ];
 
 /**
+ * Options for email sending tools.
+ */
+export interface EmailSendingOptions {
+  signatureContent?: SignatureContent;
+  defaultFrom?: string;
+}
+
+/**
+ * Append signature to email body.
+ * @param body Email body content
+ * @param signature Signature content to append
+ * @param isHtml Whether this is HTML content
+ * @returns Body with signature appended
+ */
+function appendSignature(body: string, signature: string, isHtml: boolean): string {
+  if (!signature) return body;
+  if (isHtml) {
+    // HTML: use <br> tags and -- separator
+    return `${body}<br/><br/>-- <br/>${signature}`;
+  } else {
+    // Plain text: RFC-compliant "-- \n" delimiter
+    return `${body}\n\n-- \n${signature}`;
+  }
+}
+
+/**
  * Register email sending MCP tools with the server.
  * @param server MCP server instance
  * @param jmapClient JMAP client for API calls
  * @param logger Pino logger
+ * @param options Optional signature and defaultFrom configuration
  */
 export function registerEmailSendingTools(
   server: McpServer,
   jmapClient: JMAPClient,
-  logger: Logger
+  logger: Logger,
+  options: EmailSendingOptions = {}
 ): void {
+  const { signatureContent, defaultFrom } = options;
+
   // send_email - compose and send a new email (EMAIL-01)
   server.registerTool(
     'send_email',
@@ -61,12 +92,13 @@ export function registerEmailSendingTools(
         subject: z.string().describe('Email subject line'),
         body: z.string().optional().describe('Plain text email body'),
         htmlBody: z.string().optional().describe('HTML email body'),
+        from: z.string().email().optional().describe('Sender email address (uses default if not specified)'),
       },
       annotations: EMAIL_SEND_ANNOTATIONS,
     },
-    async ({ to, cc, bcc, subject, body, htmlBody }) => {
+    async ({ to, cc, bcc, subject, body, htmlBody, from }) => {
       logger.debug(
-        { to, cc, bcc, subject, hasBody: !!body, hasHtmlBody: !!htmlBody },
+        { to, cc, bcc, subject, hasBody: !!body, hasHtmlBody: !!htmlBody, from },
         'send_email called'
       );
 
@@ -160,17 +192,29 @@ export function registerEmailSendingTools(
 
         if (body) {
           textBody = [{ partId: 'text', type: 'text/plain' }];
-          bodyValues.text = { value: body };
+          // Inject signature into plain text body
+          const finalBody = signatureContent
+            ? appendSignature(body, signatureContent.text, false)
+            : body;
+          bodyValues.text = { value: finalBody };
         }
         if (htmlBody) {
           htmlBodyParts = [{ partId: 'html', type: 'text/html' }];
-          bodyValues.html = { value: htmlBody };
+          // Inject signature into HTML body
+          const finalHtml = signatureContent
+            ? appendSignature(htmlBody, signatureContent.html, true)
+            : htmlBody;
+          bodyValues.html = { value: finalHtml };
         }
 
-        // Step 3: Build email object
+        // Step 3: Build email object with sender address priority chain
+        // Priority: explicit from parameter > defaultFrom config > identity.email
+        const senderEmail = from || defaultFrom || identity.email;
+        const senderName = identity.name; // Always use identity name
+
         const emailCreate: Record<string, unknown> = {
           mailboxIds: { [draftsMailboxId]: true },
-          from: [{ name: identity.name, email: identity.email }],
+          from: [{ name: senderName, email: senderEmail }],
           to: to.map((email) => ({ email })),
           subject,
           bodyValues,
@@ -377,12 +421,13 @@ export function registerEmailSendingTools(
           .boolean()
           .default(false)
           .describe('If true, reply to all original recipients'),
+        from: z.string().email().optional().describe('Sender email address (uses default if not specified)'),
       },
       annotations: EMAIL_SEND_ANNOTATIONS,
     },
-    async ({ originalEmailId, body, htmlBody, replyAll }) => {
+    async ({ originalEmailId, body, htmlBody, replyAll, from }) => {
       logger.debug(
-        { originalEmailId, hasBody: !!body, hasHtmlBody: !!htmlBody, replyAll },
+        { originalEmailId, hasBody: !!body, hasHtmlBody: !!htmlBody, replyAll, from },
         'reply_email called'
       );
 
@@ -581,17 +626,29 @@ export function registerEmailSendingTools(
 
         if (body) {
           textBody = [{ partId: 'text', type: 'text/plain' }];
-          bodyValues.text = { value: body };
+          // Inject signature into plain text body
+          const finalBody = signatureContent
+            ? appendSignature(body, signatureContent.text, false)
+            : body;
+          bodyValues.text = { value: finalBody };
         }
         if (htmlBody) {
           htmlBodyParts = [{ partId: 'html', type: 'text/html' }];
-          bodyValues.html = { value: htmlBody };
+          // Inject signature into HTML body
+          const finalHtml = signatureContent
+            ? appendSignature(htmlBody, signatureContent.html, true)
+            : htmlBody;
+          bodyValues.html = { value: finalHtml };
         }
 
-        // Step 6: Build email object
+        // Step 6: Build email object with sender address priority chain
+        // Priority: explicit from parameter > defaultFrom config > identity.email
+        const senderEmail = from || defaultFrom || identity.email;
+        const senderName = identity.name; // Always use identity name
+
         const emailCreate: Record<string, unknown> = {
           mailboxIds: { [draftsMailboxId]: true },
-          from: [{ name: identity.name, email: identity.email }],
+          from: [{ name: senderName, email: senderEmail }],
           to: toAddresses,
           subject: replySubject,
           inReplyTo,
