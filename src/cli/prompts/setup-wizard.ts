@@ -3,6 +3,8 @@
  * Uses @inquirer/prompts for modern, TypeScript-first prompts.
  */
 import { input, select, password, confirm } from '@inquirer/prompts';
+import { homedir } from 'node:os';
+import { access, constants } from 'node:fs/promises';
 
 /** Auth method choices for the wizard */
 export type AuthMethod = 'oidc' | 'basic' | 'bearer';
@@ -224,5 +226,58 @@ export async function promptServerName(): Promise<string> {
     message: 'Server name in Claude Desktop:',
     default: 'twake-mail',
     validate: (value) => /^[a-z0-9-]+$/.test(value) || 'Use lowercase letters, numbers, and hyphens only',
+  });
+}
+
+/**
+ * Prompt for default sender email address.
+ * Returns undefined if user skips configuration.
+ */
+export async function promptDefaultFrom(): Promise<string | undefined> {
+  const shouldConfigure = await confirm({
+    message: 'Configure default sender email address?',
+    default: true,
+  });
+
+  if (!shouldConfigure) return undefined;
+
+  return input({
+    message: 'Default "from" email address:',
+    validate: (value) => {
+      // Simple email regex - Zod will do full validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(value) || 'Please enter a valid email address';
+    },
+  });
+}
+
+/**
+ * Prompt for signature file path.
+ * Validates file exists and is readable.
+ * Returns undefined if user skips configuration.
+ */
+export async function promptSignaturePath(): Promise<string | undefined> {
+  const shouldConfigure = await confirm({
+    message: 'Configure email signature file?',
+    default: false,
+  });
+
+  if (!shouldConfigure) return undefined;
+
+  return input({
+    message: 'Path to signature file (Markdown format):',
+    default: '~/.mcp-twake-mail/signature.md',
+    validate: async (value) => {
+      if (!value) return 'Signature path cannot be empty';
+
+      // Expand ~ to home directory for validation
+      const expandedPath = value.replace(/^~/, homedir());
+      try {
+        await access(expandedPath, constants.R_OK);
+        return true;
+      } catch {
+        return `File not found or not readable: ${expandedPath}`;
+      }
+    },
   });
 }
