@@ -8,6 +8,12 @@ export interface JmapDiscoveryResult {
   method: 'dns-srv' | 'well-known-direct' | 'manual';
 }
 
+export interface OidcDiscoveryResult {
+  issuer: string;
+  clientId?: string; // Optional - often not discoverable
+  method: 'protected-resource' | 'www-authenticate' | 'manual';
+}
+
 export class DiscoveryError extends Error {
   constructor(
     message: string,
