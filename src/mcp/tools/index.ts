@@ -12,6 +12,7 @@ import { registerEmailOperationTools } from './email-operations.js';
 import { registerEmailSendingTools } from './email-sending.js';
 import { registerAttachmentTools } from './attachment.js';
 import { registerThreadTools } from './thread.js';
+import { registerBatchOperationTools } from './batch-operations.js';
 
 /**
  * Options for email sending tools.
@@ -53,6 +54,9 @@ export function registerAllTools(
 
   // Register thread tools (get_thread, get_thread_emails)
   registerThreadTools(server, jmapClient, logger);
+
+  // Register batch operation tools (batch_mark_read, batch_mark_unread, batch_move, batch_delete, batch_add_label, batch_remove_label)
+  registerBatchOperationTools(server, jmapClient, logger);
 
   logger.info('All MCP tools registered');
 }
