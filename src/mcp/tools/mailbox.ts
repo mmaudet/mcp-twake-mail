@@ -557,5 +557,211 @@ export function registerMailboxTools(
     }
   );
 
-  logger.info('Mailbox tools registered: get_mailbox, list_mailboxes, create_mailbox, rename_mailbox');
+  // delete_mailbox tool (MBOX-03)
+  server.tool(
+    'delete_mailbox',
+    'Delete a custom mailbox. Cannot delete system mailboxes or mailboxes containing emails (unless force=true).',
+    {
+      mailboxId: z.string().describe('ID of the mailbox to delete'),
+      force: z
+        .boolean()
+        .default(false)
+        .describe(
+          'If true, delete mailbox even if it contains emails (emails will be permanently deleted)'
+        ),
+    },
+    {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      title: 'Delete Mailbox',
+    },
+    async ({ mailboxId, force }) => {
+      logger.debug({ mailboxId, force }, 'delete_mailbox called');
+
+      try {
+        const session = jmapClient.getSession();
+
+        // Step 1: Fetch mailbox to check permissions and role
+        const getResponse = await jmapClient.request([
+          [
+            'Mailbox/get',
+            {
+              accountId: session.accountId,
+              ids: [mailboxId],
+              properties: ['id', 'name', 'role', 'myRights'],
+            },
+            'getMailbox',
+          ],
+        ]);
+
+        const getResult = jmapClient.parseMethodResponse(getResponse.methodResponses[0]);
+
+        if (!getResult.success) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error checking mailbox: ${getResult.error?.description || getResult.error?.type || 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const mailboxList = getResult.data?.list as
+          | Array<{
+              id: string;
+              name: string;
+              role: string | null;
+              myRights?: { mayDelete?: boolean };
+            }>
+          | undefined;
+        const notFound = getResult.data?.notFound as string[] | undefined;
+
+        if (notFound?.includes(mailboxId) || !mailboxList || mailboxList.length === 0) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Mailbox not found: ${mailboxId}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const mailbox = mailboxList[0];
+
+        // Check for system mailbox
+        if (mailbox.role !== null) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Cannot delete system mailbox: ${mailbox.role}. System folders (Inbox, Sent, Drafts, Trash, etc.) are protected and cannot be deleted.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // Check delete permission
+        if (mailbox.myRights && !mailbox.myRights.mayDelete) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: 'You do not have permission to delete this mailbox',
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // Step 2: Attempt delete with onDestroyRemoveEmails based on force
+        const setResponse = await jmapClient.request([
+          [
+            'Mailbox/set',
+            {
+              accountId: session.accountId,
+              destroy: [mailboxId],
+              onDestroyRemoveEmails: force,
+            },
+            'deleteMailbox',
+          ],
+        ]);
+
+        const setResult = jmapClient.parseMethodResponse(setResponse.methodResponses[0]);
+
+        if (!setResult.success) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error deleting mailbox: ${setResult.error?.description || setResult.error?.type || 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const response = setResult.data as unknown as MailboxSetResponse;
+
+        // Handle specific destroy errors
+        if (response.notDestroyed?.[mailboxId]) {
+          const error = response.notDestroyed[mailboxId];
+
+          if (error.type === 'mailboxHasEmail') {
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'Cannot delete mailbox: it contains emails. Move or delete the emails first, or use force=true to delete the mailbox and all its emails permanently.',
+                },
+              ],
+              isError: true,
+            };
+          }
+
+          if (error.type === 'mailboxHasChild') {
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'Cannot delete mailbox: it has child mailboxes. Delete the child mailboxes first.',
+                },
+              ],
+              isError: true,
+            };
+          }
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to delete mailbox: ${error.type}${error.description ? ' - ' + error.description : ''}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        logger.debug({ mailboxId, name: mailbox.name }, 'delete_mailbox success');
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  success: true,
+                  deletedMailboxId: mailboxId,
+                  deletedMailboxName: mailbox.name,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error({ error, mailboxId, force }, 'Exception in delete_mailbox');
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error deleting mailbox: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  logger.info(
+    'Mailbox tools registered: get_mailbox, list_mailboxes, create_mailbox, rename_mailbox, delete_mailbox'
+  );
 }
