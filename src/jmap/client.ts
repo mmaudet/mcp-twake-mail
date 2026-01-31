@@ -330,7 +330,7 @@ export class JMAPClient {
 
     // Build download URL from template
     // Template format: {downloadUrl}/{accountId}/{blobId}/{name}?type={type}
-    let url = session.downloadUrl
+    const url = session.downloadUrl
       .replace('{accountId}', encodeURIComponent(session.accountId))
       .replace('{blobId}', encodeURIComponent(blobId))
       .replace('{name}', encodeURIComponent(name || 'attachment'))

@@ -845,5 +845,532 @@ export function registerEmailSendingTools(
     }
   );
 
-  logger.debug('Email sending tools registered: send_email, reply_email');
+  // forward_email - forward an email to new recipients (FWD-01, FWD-02, FWD-03, FWD-04)
+  server.registerTool(
+    'forward_email',
+    {
+      title: 'Forward Email',
+      description:
+        'Forward an existing email to new recipients. Includes original content as quoted text and preserves all attachments.',
+      inputSchema: {
+        originalEmailId: z.string().describe('ID of the email to forward'),
+        to: z
+          .array(z.string().email())
+          .min(1)
+          .describe('Recipient email addresses (at least one required)'),
+        cc: z.array(z.string().email()).optional().describe('CC email addresses'),
+        bcc: z.array(z.string().email()).optional().describe('BCC email addresses'),
+        note: z.string().optional().describe('Personal note to include above the forwarded content'),
+        htmlNote: z.string().optional().describe('HTML version of the personal note'),
+        from: z.string().email().optional().describe('Sender email address (uses default if not specified)'),
+      },
+      annotations: EMAIL_SEND_ANNOTATIONS,
+    },
+    async ({ originalEmailId, to, cc, bcc, note, htmlNote, from }) => {
+      logger.debug(
+        { originalEmailId, to, cc, bcc, hasNote: !!note, hasHtmlNote: !!htmlNote, from },
+        'forward_email called'
+      );
+
+      try {
+        const session = jmapClient.getSession();
+
+        // Step 1: Get identity, mailboxes, and original email in a single batch
+        const setupResponse = await jmapClient.request(
+          [
+            ['Identity/get', { accountId: session.accountId }, 'getIdentity'],
+            [
+              'Mailbox/get',
+              { accountId: session.accountId, properties: ['id', 'role'] },
+              'getMailboxes',
+            ],
+            [
+              'Email/get',
+              {
+                accountId: session.accountId,
+                ids: [originalEmailId],
+                properties: ['subject', 'from', 'to', 'cc', 'sentAt', 'textBody', 'htmlBody', 'bodyValues', 'attachments'],
+                fetchTextBodyValues: true,
+                fetchHTMLBodyValues: true,
+                bodyProperties: ['partId', 'blobId', 'type', 'name', 'size', 'disposition', 'cid'],
+              },
+              'getOriginal',
+            ],
+          ],
+          SUBMISSION_USING
+        );
+
+        // Parse Identity response
+        const identityResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[0]);
+        if (!identityResult.success) {
+          logger.error({ error: identityResult.error }, 'Failed to get identity');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to get sending identity. Contact your administrator.',
+              },
+            ],
+          };
+        }
+
+        const identities = (identityResult.data as { list: Identity[] }).list;
+        if (!identities || identities.length === 0) {
+          logger.error({}, 'No sending identity available');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'No sending identity available. Contact your administrator.',
+              },
+            ],
+          };
+        }
+        const identity = identities[0];
+
+        // Parse Mailbox response and find Sent/Drafts by role
+        const mailboxResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[1]);
+        if (!mailboxResult.success) {
+          logger.error({ error: mailboxResult.error }, 'Failed to get mailboxes');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to get mailboxes. Cannot forward email.',
+              },
+            ],
+          };
+        }
+
+        const mailboxes = (mailboxResult.data as { list: Array<{ id: string; role: string | null }> }).list;
+        const sentMailbox = mailboxes.find((mb) => mb.role === 'sent');
+        const draftsMailbox = mailboxes.find((mb) => mb.role === 'drafts');
+
+        const sentMailboxId = sentMailbox?.id;
+
+        if (!draftsMailbox) {
+          logger.error({}, 'No Drafts mailbox found');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'No Drafts mailbox found. Cannot forward email.',
+              },
+            ],
+          };
+        }
+        const draftsMailboxId = draftsMailbox.id;
+
+        // Parse original email response
+        const originalResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[2]);
+        if (!originalResult.success) {
+          logger.error({ error: originalResult.error }, 'Failed to get original email');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to fetch original email: ${originalResult.error?.description || originalResult.error?.type || 'Unknown error'}`,
+              },
+            ],
+          };
+        }
+
+        interface OriginalEmailData {
+          subject?: string;
+          from?: Array<{ name?: string; email: string }>;
+          to?: Array<{ name?: string; email: string }>;
+          cc?: Array<{ name?: string; email: string }>;
+          sentAt?: string;
+          textBody?: Array<{ partId: string }>;
+          htmlBody?: Array<{ partId: string }>;
+          bodyValues?: Record<string, { value: string }>;
+          attachments?: Array<{
+            blobId: string;
+            type: string;
+            name?: string;
+            size?: number;
+            disposition?: string;
+            cid?: string;
+          }>;
+        }
+
+        const originalList = (originalResult.data as { list: OriginalEmailData[] }).list;
+
+        if (!originalList || originalList.length === 0) {
+          logger.error({ originalEmailId }, 'Original email not found');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Original email not found: ${originalEmailId}`,
+              },
+            ],
+          };
+        }
+        const original = originalList[0];
+
+        // Step 2: Build subject with Fwd: prefix (case-insensitive check)
+        let forwardSubject: string;
+        const originalSubject = original.subject || '';
+        if (originalSubject.toLowerCase().startsWith('fwd:')) {
+          forwardSubject = originalSubject;
+        } else {
+          forwardSubject = `Fwd: ${originalSubject}`;
+        }
+
+        // Step 3: Extract original email body content
+        const originalTextPartId = original.textBody?.[0]?.partId;
+        const originalHtmlPartId = original.htmlBody?.[0]?.partId;
+        const originalTextBody = originalTextPartId ? original.bodyValues?.[originalTextPartId]?.value || '' : '';
+        const originalHtmlBody = originalHtmlPartId ? original.bodyValues?.[originalHtmlPartId]?.value || '' : '';
+
+        // Format original sender info for quoted header
+        const originalFrom = original.from?.[0];
+        const originalFromStr = originalFrom
+          ? originalFrom.name
+            ? `${originalFrom.name} <${originalFrom.email}>`
+            : originalFrom.email
+          : 'Unknown';
+        const originalToStr = (original.to || [])
+          .map((addr) => (addr.name ? `${addr.name} <${addr.email}>` : addr.email))
+          .join(', ') || 'Unknown';
+        const originalDate = original.sentAt
+          ? new Date(original.sentAt).toLocaleString()
+          : 'Unknown date';
+
+        // Step 4: Build quoted forwarded content
+        const forwardHeader = `---------- Forwarded message ---------
+From: ${originalFromStr}
+Date: ${originalDate}
+Subject: ${originalSubject}
+To: ${originalToStr}`;
+
+        // Plain text version
+        let plainTextBody = note ? `${note}\n\n` : '';
+        plainTextBody += `${forwardHeader}\n\n${originalTextBody}`;
+
+        // HTML version with styling
+        const htmlForwardHeader = `<div style="border-left: 2px solid #ccc; padding-left: 10px; margin-left: 5px; color: #666;">
+<p>---------- Forwarded message ---------<br/>
+From: ${escapeHtml(originalFromStr)}<br/>
+Date: ${escapeHtml(originalDate)}<br/>
+Subject: ${escapeHtml(originalSubject)}<br/>
+To: ${escapeHtml(originalToStr)}</p>
+${originalHtmlBody || `<p>${escapeHtml(originalTextBody).replace(/\n/g, '<br/>')}</p>`}
+</div>`;
+
+        let htmlBodyContent = htmlNote ? `<div>${htmlNote}</div><br/>` : (note ? `<p>${escapeHtml(note).replace(/\n/g, '<br/>')}</p><br/>` : '');
+        htmlBodyContent += htmlForwardHeader;
+
+        // Step 5: Apply signature if configured
+        if (signatureContent) {
+          plainTextBody = appendSignature(plainTextBody, signatureContent.text, false);
+          htmlBodyContent = appendSignature(htmlBodyContent, signatureContent.html, true);
+        }
+
+        // Step 6: Build email object with sender address priority chain
+        // Priority: explicit from parameter > defaultFrom config > identity.email
+        const senderEmail = from || defaultFrom || identity.email;
+        const senderName = identity.name; // Always use identity name
+
+        // Check if original email has attachments
+        const attachments = original.attachments || [];
+        const hasAttachments = attachments.length > 0;
+
+        let emailCreate: Record<string, unknown>;
+
+        if (hasAttachments) {
+          // With attachments: use bodyStructure with multipart/mixed
+          const bodyValues: Record<string, { value: string }> = {
+            text: { value: plainTextBody },
+            html: { value: htmlBodyContent },
+          };
+
+          const attachmentParts = attachments.map((att, index) => ({
+            blobId: att.blobId,
+            type: att.type,
+            name: att.name || `attachment-${index + 1}`,
+            disposition: 'attachment',
+          }));
+
+          emailCreate = {
+            mailboxIds: { [draftsMailboxId]: true },
+            from: [{ name: senderName, email: senderEmail }],
+            to: (to as string[]).map((email) => ({ email })),
+            subject: forwardSubject,
+            bodyValues,
+            bodyStructure: {
+              type: 'multipart/mixed',
+              subParts: [
+                {
+                  type: 'multipart/alternative',
+                  subParts: [
+                    { type: 'text/plain', partId: 'text' },
+                    { type: 'text/html', partId: 'html' },
+                  ],
+                },
+                ...attachmentParts,
+              ],
+            },
+          };
+        } else {
+          // Without attachments: use simple textBody/htmlBody
+          const bodyValues: Record<string, { value: string }> = {
+            text: { value: plainTextBody },
+            html: { value: htmlBodyContent },
+          };
+
+          emailCreate = {
+            mailboxIds: { [draftsMailboxId]: true },
+            from: [{ name: senderName, email: senderEmail }],
+            to: (to as string[]).map((email) => ({ email })),
+            subject: forwardSubject,
+            bodyValues,
+            textBody: [{ partId: 'text', type: 'text/plain' }],
+            htmlBody: [{ partId: 'html', type: 'text/html' }],
+          };
+        }
+
+        // Add optional address fields
+        if (cc && (cc as string[]).length > 0) {
+          emailCreate.cc = (cc as string[]).map((email) => ({ email }));
+        }
+        if (bcc && (bcc as string[]).length > 0) {
+          emailCreate.bcc = (bcc as string[]).map((email) => ({ email }));
+        }
+
+        // Note: Unlike reply_email, forward does NOT include inReplyTo or references headers
+
+        // Step 7: Build onSuccessUpdateEmail for Drafts-to-Sent transition
+        const onSuccessUpdate: Record<string, unknown> = {
+          'keywords/$draft': null,
+        };
+
+        if (sentMailboxId) {
+          onSuccessUpdate[`mailboxIds/${draftsMailboxId}`] = null;
+          onSuccessUpdate[`mailboxIds/${sentMailboxId}`] = true;
+        }
+
+        // Step 8: Create email and submit in single batch
+        const sendResponse = await jmapClient.request(
+          [
+            [
+              'Email/set',
+              {
+                accountId: session.accountId,
+                create: { forward: emailCreate },
+              },
+              'createForward',
+            ],
+            [
+              'EmailSubmission/set',
+              {
+                accountId: session.accountId,
+                create: {
+                  submission: {
+                    identityId: identity.id,
+                    emailId: '#forward',
+                  },
+                },
+                onSuccessUpdateEmail: { '#submission': onSuccessUpdate },
+              },
+              'submitForward',
+            ],
+          ],
+          SUBMISSION_USING
+        );
+
+        // Step 9: Check Email/set response
+        const emailResult = jmapClient.parseMethodResponse(sendResponse.methodResponses[0]);
+        if (!emailResult.success) {
+          logger.error({ error: emailResult.error }, 'JMAP error in Email/set for forward');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to create forwarded email: ${emailResult.error?.description || emailResult.error?.type || 'Unknown error'}`,
+              },
+            ],
+          };
+        }
+
+        const emailSetResponse = emailResult.data as unknown as EmailSetResponse;
+        if (emailSetResponse.notCreated?.forward) {
+          const error = emailSetResponse.notCreated.forward;
+          logger.error({ error }, 'Email/set notCreated for forward');
+
+          // Handle blobNotFound error for attachments
+          if (error.type === 'blobNotFound') {
+            const missingCount = attachments.length;
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Forward failed: Some attachments are no longer available (${missingCount} attachment${missingCount !== 1 ? 's' : ''} missing). The original email may have been modified or deleted.`,
+                },
+              ],
+            };
+          }
+
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to create forwarded email: ${error.type} - ${error.description || ''}`,
+              },
+            ],
+          };
+        }
+
+        const createdEmail = emailSetResponse.created?.forward;
+        if (!createdEmail) {
+          logger.error({}, 'No created forward in response');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to create forwarded email: no created email in response',
+              },
+            ],
+          };
+        }
+
+        // Step 10: Check EmailSubmission/set response
+        const submissionResult = jmapClient.parseMethodResponse(sendResponse.methodResponses[1]);
+        if (!submissionResult.success) {
+          logger.error({ error: submissionResult.error }, 'JMAP error in EmailSubmission/set for forward');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to send forwarded email: ${submissionResult.error?.description || submissionResult.error?.type || 'Unknown error'}`,
+              },
+            ],
+          };
+        }
+
+        const submissionSetResponse = submissionResult.data as unknown as EmailSubmissionSetResponse;
+        if (submissionSetResponse.notCreated?.submission) {
+          const error = submissionSetResponse.notCreated.submission;
+          logger.error({ error }, 'EmailSubmission/set notCreated for forward');
+          let errorMessage = `Failed to send forwarded email: ${error.type}`;
+          if (error.type === 'forbiddenFrom') {
+            errorMessage = 'Failed to send forwarded email: You are not authorized to send from this address.';
+          } else if (error.type === 'forbiddenToSend') {
+            errorMessage = 'Failed to send forwarded email: You do not have permission to send emails.';
+          } else if (error.type === 'tooManyRecipients') {
+            errorMessage = 'Failed to send forwarded email: Too many recipients specified.';
+          } else if (error.description) {
+            errorMessage = `Failed to send forwarded email: ${error.type} - ${error.description}`;
+          }
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: errorMessage,
+              },
+            ],
+          };
+        }
+
+        const createdSubmission = submissionSetResponse.created?.submission;
+        if (!createdSubmission) {
+          logger.error({}, 'No created submission in response for forward');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to send forwarded email: no submission created in response',
+              },
+            ],
+          };
+        }
+
+        // Step 11: Mark original email with $forwarded keyword (non-blocking)
+        try {
+          await jmapClient.request(
+            [
+              [
+                'Email/set',
+                {
+                  accountId: session.accountId,
+                  update: {
+                    [originalEmailId as string]: { 'keywords/$forwarded': true },
+                  },
+                },
+                'markForwarded',
+              ],
+            ],
+            SUBMISSION_USING
+          );
+        } catch (markError) {
+          // Log warning but don't fail the forward
+          logger.warn({ error: markError, originalEmailId }, 'Failed to mark original email as forwarded');
+        }
+
+        logger.debug(
+          {
+            emailId: createdEmail.id,
+            submissionId: createdSubmission.id,
+            hasAttachments,
+            attachmentCount: attachments.length,
+          },
+          'forward_email success'
+        );
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                success: true,
+                emailId: createdEmail.id,
+                submissionId: createdSubmission.id,
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error({ error }, 'Exception in forward_email');
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error forwarding email: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  logger.debug('Email sending tools registered: send_email, reply_email, forward_email');
+}
+
+/**
+ * Escape HTML special characters.
+ * @param text Text to escape
+ * @returns HTML-escaped text
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
