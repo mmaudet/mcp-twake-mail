@@ -1,0 +1,459 @@
+/**
+ * Tests for batch email operation MCP tools - batch_mark_read, batch_mark_unread, batch_move.
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { registerBatchOperationTools } from './batch-operations.js';
+import type { JMAPClient } from '../../jmap/client.js';
+import type { Logger } from '../../config/logger.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+
+// Mock types
+type ToolHandler = (args: Record<string, unknown>) => Promise<{
+  content: Array<{ type: string; text: string }>;
+  isError?: boolean;
+}>;
+
+describe('registerBatchOperationTools', () => {
+  let mockServer: McpServer;
+  let mockJmapClient: JMAPClient;
+  let mockLogger: Logger;
+  let registeredTools: Map<string, ToolHandler>;
+
+  beforeEach(() => {
+    registeredTools = new Map();
+
+    // Mock MCP server
+    mockServer = {
+      registerTool: vi.fn((name: string, _options: unknown, handler: ToolHandler) => {
+        registeredTools.set(name, handler);
+      }),
+    } as unknown as McpServer;
+
+    // Mock JMAP client
+    mockJmapClient = {
+      getSession: vi.fn(() => ({ accountId: 'account-1', apiUrl: 'https://jmap.example.com/api' })),
+      request: vi.fn(),
+      parseMethodResponse: vi.fn(),
+    } as unknown as JMAPClient;
+
+    // Mock logger (silent)
+    mockLogger = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    } as unknown as Logger;
+
+    // Register all tools
+    registerBatchOperationTools(mockServer, mockJmapClient, mockLogger);
+  });
+
+  describe('batch_mark_read', () => {
+    it('returns success when all emails are marked as read', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          [
+            'Email/set',
+            {
+              accountId: 'account-1',
+              updated: { 'email-1': null, 'email-2': null, 'email-3': null },
+            },
+            'batchMarkRead',
+          ],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: true,
+        data: {
+          accountId: 'account-1',
+          updated: { 'email-1': null, 'email-2': null, 'email-3': null },
+        },
+      });
+
+      const handler = registeredTools.get('batch_mark_read')!;
+      const result = await handler({ emailIds: ['email-1', 'email-2', 'email-3'] });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        success: true,
+        total: 3,
+        succeeded: 3,
+        failed: 0,
+        results: {
+          succeeded: ['email-1', 'email-2', 'email-3'],
+          failed: [],
+        },
+      });
+    });
+
+    it('handles partial failure with per-email reporting', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          [
+            'Email/set',
+            {
+              accountId: 'account-1',
+              updated: { 'email-1': null, 'email-3': null },
+              notUpdated: { 'email-2': { type: 'notFound', description: 'Email not found' } },
+            },
+            'batchMarkRead',
+          ],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: true,
+        data: {
+          accountId: 'account-1',
+          updated: { 'email-1': null, 'email-3': null },
+          notUpdated: { 'email-2': { type: 'notFound', description: 'Email not found' } },
+        },
+      });
+
+      const handler = registeredTools.get('batch_mark_read')!;
+      const result = await handler({ emailIds: ['email-1', 'email-2', 'email-3'] });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        success: false,
+        total: 3,
+        succeeded: 2,
+        failed: 1,
+        results: {
+          succeeded: ['email-1', 'email-3'],
+          failed: [{ emailId: 'email-2', error: 'notFound: Email not found' }],
+        },
+      });
+    });
+
+    it('handles total failure with all emails in notUpdated', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          [
+            'Email/set',
+            {
+              accountId: 'account-1',
+              notUpdated: {
+                'email-1': { type: 'notFound' },
+                'email-2': { type: 'notFound' },
+              },
+            },
+            'batchMarkRead',
+          ],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: true,
+        data: {
+          accountId: 'account-1',
+          notUpdated: {
+            'email-1': { type: 'notFound' },
+            'email-2': { type: 'notFound' },
+          },
+        },
+      });
+
+      const handler = registeredTools.get('batch_mark_read')!;
+      const result = await handler({ emailIds: ['email-1', 'email-2'] });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.total).toBe(2);
+      expect(parsed.succeeded).toBe(0);
+      expect(parsed.failed).toBe(2);
+    });
+
+    it('returns error when JMAP method fails', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          ['error', { type: 'serverFail', description: 'Server error' }, 'batchMarkRead'],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: false,
+        error: { type: 'serverFail', description: 'Server error' },
+      });
+
+      const handler = registeredTools.get('batch_mark_read')!;
+      const result = await handler({ emailIds: ['email-1'] });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Failed to batch mark emails as read');
+    });
+  });
+
+  describe('batch_mark_unread', () => {
+    it('returns success when all emails are marked as unread', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          [
+            'Email/set',
+            {
+              accountId: 'account-1',
+              updated: { 'email-1': null, 'email-2': null },
+            },
+            'batchMarkUnread',
+          ],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: true,
+        data: {
+          accountId: 'account-1',
+          updated: { 'email-1': null, 'email-2': null },
+        },
+      });
+
+      const handler = registeredTools.get('batch_mark_unread')!;
+      const result = await handler({ emailIds: ['email-1', 'email-2'] });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        success: true,
+        total: 2,
+        succeeded: 2,
+        failed: 0,
+        results: {
+          succeeded: ['email-1', 'email-2'],
+          failed: [],
+        },
+      });
+    });
+
+    it('handles partial failure', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          [
+            'Email/set',
+            {
+              accountId: 'account-1',
+              updated: { 'email-1': null },
+              notUpdated: { 'email-2': { type: 'invalidProperties' } },
+            },
+            'batchMarkUnread',
+          ],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: true,
+        data: {
+          accountId: 'account-1',
+          updated: { 'email-1': null },
+          notUpdated: { 'email-2': { type: 'invalidProperties' } },
+        },
+      });
+
+      const handler = registeredTools.get('batch_mark_unread')!;
+      const result = await handler({ emailIds: ['email-1', 'email-2'] });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.succeeded).toBe(1);
+      expect(parsed.failed).toBe(1);
+      expect(parsed.results.failed[0].emailId).toBe('email-2');
+    });
+
+    it('returns error when JMAP method fails', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          ['error', { type: 'serverFail' }, 'batchMarkUnread'],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: false,
+        error: { type: 'serverFail' },
+      });
+
+      const handler = registeredTools.get('batch_mark_unread')!;
+      const result = await handler({ emailIds: ['email-1'] });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Failed to batch mark emails as unread');
+    });
+  });
+
+  describe('batch_move', () => {
+    it('returns success when all emails are moved', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          [
+            'Email/set',
+            {
+              accountId: 'account-1',
+              updated: { 'email-1': null, 'email-2': null, 'email-3': null },
+            },
+            'batchMove',
+          ],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: true,
+        data: {
+          accountId: 'account-1',
+          updated: { 'email-1': null, 'email-2': null, 'email-3': null },
+        },
+      });
+
+      const handler = registeredTools.get('batch_move')!;
+      const result = await handler({
+        emailIds: ['email-1', 'email-2', 'email-3'],
+        targetMailboxId: 'archive-mailbox',
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        success: true,
+        total: 3,
+        succeeded: 3,
+        failed: 0,
+        results: {
+          succeeded: ['email-1', 'email-2', 'email-3'],
+          failed: [],
+        },
+        targetMailboxId: 'archive-mailbox',
+      });
+    });
+
+    it('handles partial failure with some emails not found', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          [
+            'Email/set',
+            {
+              accountId: 'account-1',
+              updated: { 'email-1': null },
+              notUpdated: {
+                'email-2': { type: 'notFound', description: 'Email not found' },
+                'email-3': { type: 'notFound', description: 'Email not found' },
+              },
+            },
+            'batchMove',
+          ],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: true,
+        data: {
+          accountId: 'account-1',
+          updated: { 'email-1': null },
+          notUpdated: {
+            'email-2': { type: 'notFound', description: 'Email not found' },
+            'email-3': { type: 'notFound', description: 'Email not found' },
+          },
+        },
+      });
+
+      const handler = registeredTools.get('batch_move')!;
+      const result = await handler({
+        emailIds: ['email-1', 'email-2', 'email-3'],
+        targetMailboxId: 'archive-mailbox',
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.total).toBe(3);
+      expect(parsed.succeeded).toBe(1);
+      expect(parsed.failed).toBe(2);
+      expect(parsed.targetMailboxId).toBe('archive-mailbox');
+      expect(parsed.results.failed.length).toBe(2);
+    });
+
+    it('includes targetMailboxId in request', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          ['Email/set', { accountId: 'account-1', updated: { 'email-1': null } }, 'batchMove'],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: true,
+        data: { accountId: 'account-1', updated: { 'email-1': null } },
+      });
+
+      const handler = registeredTools.get('batch_move')!;
+      await handler({ emailIds: ['email-1'], targetMailboxId: 'target-123' });
+
+      // Verify the request was made with correct mailboxIds structure
+      expect(mockJmapClient.request).toHaveBeenCalledWith([
+        [
+          'Email/set',
+          {
+            accountId: 'account-1',
+            update: {
+              'email-1': { mailboxIds: { 'target-123': true } },
+            },
+          },
+          'batchMove',
+        ],
+      ]);
+    });
+
+    it('returns error when JMAP method fails', async () => {
+      vi.mocked(mockJmapClient.request).mockResolvedValue({
+        methodResponses: [
+          ['error', { type: 'invalidArguments', description: 'Invalid mailbox ID' }, 'batchMove'],
+        ],
+      });
+      vi.mocked(mockJmapClient.parseMethodResponse).mockReturnValue({
+        success: false,
+        error: { type: 'invalidArguments', description: 'Invalid mailbox ID' },
+      });
+
+      const handler = registeredTools.get('batch_move')!;
+      const result = await handler({
+        emailIds: ['email-1'],
+        targetMailboxId: 'invalid-mailbox',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Failed to batch move emails');
+    });
+  });
+
+  describe('tool registration', () => {
+    it('registers all 3 batch operation tools', () => {
+      expect(registeredTools.has('batch_mark_read')).toBe(true);
+      expect(registeredTools.has('batch_mark_unread')).toBe(true);
+      expect(registeredTools.has('batch_move')).toBe(true);
+      expect(registeredTools.size).toBe(3);
+    });
+  });
+
+  describe('error handling', () => {
+    it('handles exceptions in batch_mark_read', async () => {
+      vi.mocked(mockJmapClient.request).mockRejectedValue(new Error('Network error'));
+
+      const handler = registeredTools.get('batch_mark_read')!;
+      const result = await handler({ emailIds: ['email-1'] });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Error batch marking emails as read');
+      expect(result.content[0].text).toContain('Network error');
+    });
+
+    it('handles exceptions in batch_mark_unread', async () => {
+      vi.mocked(mockJmapClient.request).mockRejectedValue(new Error('Connection failed'));
+
+      const handler = registeredTools.get('batch_mark_unread')!;
+      const result = await handler({ emailIds: ['email-1'] });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Error batch marking emails as unread');
+    });
+
+    it('handles exceptions in batch_move', async () => {
+      vi.mocked(mockJmapClient.request).mockRejectedValue(new Error('Timeout'));
+
+      const handler = registeredTools.get('batch_move')!;
+      const result = await handler({ emailIds: ['email-1'], targetMailboxId: 'mailbox-1' });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Error batch moving emails');
+    });
+  });
+});
