@@ -921,5 +921,150 @@ export function registerEmailOperationTools(
     }
   );
 
-  logger.debug('Email operation tools registered: mark_as_read, mark_as_unread, delete_email, move_email, add_label, remove_label, create_draft');
+  // update_draft - modify an existing draft email (DRAFT-01)
+  server.registerTool(
+    'update_draft',
+    {
+      title: 'Update Draft Email',
+      description: 'Update an existing draft email. Modify subject, body, or recipients. Supports optimistic concurrency control via ifInState parameter.',
+      inputSchema: {
+        draftId: z.string().describe('The unique identifier of the draft email to update'),
+        subject: z.string().optional().describe('New subject line'),
+        body: z.string().optional().describe('New plain text body'),
+        to: z.array(z.string().email()).optional().describe('New recipient list'),
+        cc: z.array(z.string().email()).optional().describe('New CC list'),
+        bcc: z.array(z.string().email()).optional().describe('New BCC list'),
+        ifInState: z.string().optional().describe('Optional state for optimistic concurrency control (prevents overwriting concurrent edits)'),
+      },
+      annotations: EMAIL_WRITE_ANNOTATIONS,
+    },
+    async ({ draftId, subject, body, to, cc, bcc, ifInState }) => {
+      logger.debug({ draftId, subject, hasBody: !!body, to, cc, bcc, ifInState }, 'update_draft called');
+
+      try {
+        // Build update object using patch syntax for body
+        const updateObj: Record<string, unknown> = {};
+        if (subject !== undefined) updateObj.subject = subject;
+        if (body !== undefined) updateObj['bodyValues/1/value'] = body;
+        if (to !== undefined) updateObj.to = to.map(email => ({ email }));
+        if (cc !== undefined) updateObj.cc = cc.map(email => ({ email }));
+        if (bcc !== undefined) updateObj.bcc = bcc.map(email => ({ email }));
+
+        // Check if any fields to update
+        if (Object.keys(updateObj).length === 0) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'No fields to update. Please provide at least one field: subject, body, to, cc, or bcc.',
+              },
+            ],
+          };
+        }
+
+        const session = jmapClient.getSession();
+
+        // Build request params with optional ifInState
+        const requestParams: Record<string, unknown> = {
+          accountId: session.accountId,
+          update: {
+            [draftId]: updateObj,
+          },
+        };
+        if (ifInState) {
+          requestParams.ifInState = ifInState;
+        }
+
+        const response = await jmapClient.request([
+          [
+            'Email/set',
+            requestParams,
+            'updateDraft',
+          ],
+        ]);
+
+        // Level 1: parseMethodResponse check
+        const result = jmapClient.parseMethodResponse(response.methodResponses[0]);
+        if (!result.success) {
+          logger.error({ error: result.error, draftId }, 'JMAP error in update_draft');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to update draft: ${result.error?.description || result.error?.type || 'Unknown error'}`,
+              },
+            ],
+          };
+        }
+
+        // Level 2: notUpdated check
+        const setResponse = result.data as unknown as EmailSetResponse;
+        if (setResponse.notUpdated?.[draftId]) {
+          const error = setResponse.notUpdated[draftId];
+          logger.error({ error, draftId }, 'Email/set notUpdated in update_draft');
+
+          // User-friendly error messages for common cases
+          if (error.type === 'notFound') {
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'Draft not found. It may have been deleted or sent.',
+                },
+              ],
+            };
+          }
+
+          if (error.type === 'stateMismatch') {
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'Draft was modified by another client. Please refresh and try again.',
+                },
+              ],
+            };
+          }
+
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to update draft: ${error.type} - ${error.description || ''}`,
+              },
+            ],
+          };
+        }
+
+        logger.debug({ draftId, updatedFields: Object.keys(updateObj) }, 'update_draft success');
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ success: true, draftId, updated: Object.keys(updateObj) }),
+            },
+          ],
+        };
+      } catch (error) {
+        // Level 3: try/catch wrapper
+        logger.error({ error, draftId }, 'Exception in update_draft');
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error updating draft: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  logger.debug('Email operation tools registered: mark_as_read, mark_as_unread, delete_email, move_email, add_label, remove_label, create_draft, update_draft');
 }
