@@ -95,3 +95,16 @@ export interface EmailSubmissionSetResponse {
   created?: Record<string, { id: string }>;
   notCreated?: Record<string, { type: string; description?: string }>;
 }
+
+/** JMAP Mailbox/set response (RFC 8621 Section 2.5) */
+export interface MailboxSetResponse {
+  accountId: string;
+  oldState: string;
+  newState: string;
+  created?: Record<string, { id: string }>;
+  updated?: Record<string, null>;
+  destroyed?: string[];
+  notCreated?: Record<string, { type: string; description?: string }>;
+  notUpdated?: Record<string, { type: string; description?: string }>;
+  notDestroyed?: Record<string, { type: string; description?: string }>;
+}
