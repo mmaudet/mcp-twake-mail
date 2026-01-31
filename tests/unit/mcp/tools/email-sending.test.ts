@@ -1124,4 +1124,709 @@ describe('Email Sending Tools', () => {
       expect(emailSetCall[1].create.reply.from).toEqual([{ name: 'Test User', email: 'default@example.com' }]);
     });
   });
+
+  describe('forward_email', () => {
+    it('registers forward_email tool with correct metadata', () => {
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
+
+      expect(registeredTools.has('forward_email')).toBe(true);
+      const tool = registeredTools.get('forward_email')!;
+
+      expect(tool.config.title).toBe('Forward Email');
+      expect(tool.config.annotations.readOnlyHint).toBe(false);
+      expect(tool.config.annotations.idempotentHint).toBe(false);
+      expect(tool.config.annotations.openWorldHint).toBe(true);
+    });
+
+    it('should forward email without attachments', async () => {
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', {
+            list: [{
+              subject: 'Original Subject',
+              from: [{ name: 'Sender', email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              htmlBody: [{ partId: 'html1' }],
+              bodyValues: {
+                text1: { value: 'Original body text' },
+                html1: { value: '<p>Original body text</p>' },
+              },
+              attachments: [],
+            }],
+          }, 'getOriginal'],
+        ],
+      };
+
+      const sendResponse = {
+        methodResponses: [
+          ['Email/set', { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } }, 'createForward'],
+          ['EmailSubmission/set', { created: { submission: { id: 'submission-1' } } }, 'submitForward'],
+        ],
+      };
+
+      const markResponse = {
+        methodResponses: [
+          ['Email/set', { updated: { 'original-email-1': null } }, 'markForwarded'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(setupResponse)
+        .mockResolvedValueOnce(sendResponse)
+        .mockResolvedValueOnce(markResponse);
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({
+          success: true,
+          data: {
+            list: [{
+              subject: 'Original Subject',
+              from: [{ name: 'Sender', email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              htmlBody: [{ partId: 'html1' }],
+              bodyValues: {
+                text1: { value: 'Original body text' },
+                html1: { value: '<p>Original body text</p>' },
+              },
+              attachments: [],
+            }],
+          },
+        })
+        .mockReturnValueOnce({ success: true, data: { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
+        .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
+      const tool = registeredTools.get('forward_email')!;
+
+      const result = await tool.handler({
+        originalEmailId: 'original-email-1',
+        to: ['recipient@example.com'],
+      });
+
+      expect(result.isError).toBeUndefined();
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+      expect(response.emailId).toBe('forward-1');
+      expect(response.submissionId).toBe('submission-1');
+
+      // Verify Email/set was called with textBody/htmlBody (not bodyStructure for no attachments)
+      const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
+      const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
+      expect(emailSetCall[1].create.forward.textBody).toBeDefined();
+      expect(emailSetCall[1].create.forward.htmlBody).toBeDefined();
+      expect(emailSetCall[1].create.forward.bodyStructure).toBeUndefined();
+
+      // Verify no inReplyTo or references headers
+      expect(emailSetCall[1].create.forward.inReplyTo).toBeUndefined();
+      expect(emailSetCall[1].create.forward.references).toBeUndefined();
+    });
+
+    it('should forward email with attachments using blobId references', async () => {
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', {
+            list: [{
+              subject: 'Original Subject',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Original body' } },
+              attachments: [
+                { blobId: 'blob-att-1', type: 'application/pdf', name: 'document.pdf', size: 1024 },
+                { blobId: 'blob-att-2', type: 'image/png', name: 'image.png', size: 2048 },
+              ],
+            }],
+          }, 'getOriginal'],
+        ],
+      };
+
+      const sendResponse = {
+        methodResponses: [
+          ['Email/set', { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } }, 'createForward'],
+          ['EmailSubmission/set', { created: { submission: { id: 'submission-1' } } }, 'submitForward'],
+        ],
+      };
+
+      const markResponse = {
+        methodResponses: [
+          ['Email/set', { updated: { 'original-email-1': null } }, 'markForwarded'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(setupResponse)
+        .mockResolvedValueOnce(sendResponse)
+        .mockResolvedValueOnce(markResponse);
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({
+          success: true,
+          data: {
+            list: [{
+              subject: 'Original Subject',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Original body' } },
+              attachments: [
+                { blobId: 'blob-att-1', type: 'application/pdf', name: 'document.pdf', size: 1024 },
+                { blobId: 'blob-att-2', type: 'image/png', name: 'image.png', size: 2048 },
+              ],
+            }],
+          },
+        })
+        .mockReturnValueOnce({ success: true, data: { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
+        .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
+      const tool = registeredTools.get('forward_email')!;
+
+      await tool.handler({
+        originalEmailId: 'original-email-1',
+        to: ['recipient@example.com'],
+      });
+
+      // Verify bodyStructure is used with multipart/mixed for attachments
+      const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
+      const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
+      const bodyStructure = emailSetCall[1].create.forward.bodyStructure;
+
+      expect(bodyStructure).toBeDefined();
+      expect(bodyStructure.type).toBe('multipart/mixed');
+      expect(bodyStructure.subParts).toHaveLength(3); // alternative + 2 attachments
+
+      // First subPart should be multipart/alternative
+      expect(bodyStructure.subParts[0].type).toBe('multipart/alternative');
+
+      // Attachment blobIds should be referenced (not re-uploaded)
+      expect(bodyStructure.subParts[1].blobId).toBe('blob-att-1');
+      expect(bodyStructure.subParts[1].name).toBe('document.pdf');
+      expect(bodyStructure.subParts[2].blobId).toBe('blob-att-2');
+      expect(bodyStructure.subParts[2].name).toBe('image.png');
+    });
+
+    it('should include personal note above forwarded content', async () => {
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Original body' } },
+              attachments: [],
+            }],
+          }, 'getOriginal'],
+        ],
+      };
+
+      const sendResponse = {
+        methodResponses: [
+          ['Email/set', { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } }, 'createForward'],
+          ['EmailSubmission/set', { created: { submission: { id: 'submission-1' } } }, 'submitForward'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(setupResponse)
+        .mockResolvedValueOnce(sendResponse)
+        .mockResolvedValueOnce({ methodResponses: [] });
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({
+          success: true,
+          data: {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Original body' } },
+              attachments: [],
+            }],
+          },
+        })
+        .mockReturnValueOnce({ success: true, data: { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
+        .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
+      const tool = registeredTools.get('forward_email')!;
+
+      await tool.handler({
+        originalEmailId: 'original-email-1',
+        to: ['recipient@example.com'],
+        note: 'FYI - check this out!',
+      });
+
+      // Verify note appears before forwarded content
+      const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
+      const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
+      const textBodyValue = emailSetCall[1].create.forward.bodyValues.text.value;
+
+      expect(textBodyValue).toContain('FYI - check this out!');
+      expect(textBodyValue.indexOf('FYI - check this out!')).toBeLessThan(textBodyValue.indexOf('Forwarded message'));
+    });
+
+    it('should not duplicate Fwd: prefix', async () => {
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', {
+            list: [{
+              subject: 'Fwd: Already Forwarded',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          }, 'getOriginal'],
+        ],
+      };
+
+      const sendResponse = {
+        methodResponses: [
+          ['Email/set', { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } }, 'createForward'],
+          ['EmailSubmission/set', { created: { submission: { id: 'submission-1' } } }, 'submitForward'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(setupResponse)
+        .mockResolvedValueOnce(sendResponse)
+        .mockResolvedValueOnce({ methodResponses: [] });
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({
+          success: true,
+          data: {
+            list: [{
+              subject: 'Fwd: Already Forwarded',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          },
+        })
+        .mockReturnValueOnce({ success: true, data: { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
+        .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
+      const tool = registeredTools.get('forward_email')!;
+
+      await tool.handler({
+        originalEmailId: 'original-email-1',
+        to: ['recipient@example.com'],
+      });
+
+      const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
+      const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
+      expect(emailSetCall[1].create.forward.subject).toBe('Fwd: Already Forwarded');
+      expect(emailSetCall[1].create.forward.subject).not.toBe('Fwd: Fwd: Already Forwarded');
+    });
+
+    it('should add Fwd: prefix to subject', async () => {
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', {
+            list: [{
+              subject: 'Hello World',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          }, 'getOriginal'],
+        ],
+      };
+
+      const sendResponse = {
+        methodResponses: [
+          ['Email/set', { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } }, 'createForward'],
+          ['EmailSubmission/set', { created: { submission: { id: 'submission-1' } } }, 'submitForward'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(setupResponse)
+        .mockResolvedValueOnce(sendResponse)
+        .mockResolvedValueOnce({ methodResponses: [] });
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({
+          success: true,
+          data: {
+            list: [{
+              subject: 'Hello World',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          },
+        })
+        .mockReturnValueOnce({ success: true, data: { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
+        .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
+      const tool = registeredTools.get('forward_email')!;
+
+      await tool.handler({
+        originalEmailId: 'original-email-1',
+        to: ['recipient@example.com'],
+      });
+
+      const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
+      const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
+      expect(emailSetCall[1].create.forward.subject).toBe('Fwd: Hello World');
+    });
+
+    it('should return error when original email not found', async () => {
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', { list: [] }, 'getOriginal'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce(setupResponse);
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [] } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
+      const tool = registeredTools.get('forward_email')!;
+
+      const result = await tool.handler({
+        originalEmailId: 'nonexistent-email-id',
+        to: ['recipient@example.com'],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Original email not found');
+      expect(result.content[0].text).toContain('nonexistent-email-id');
+    });
+
+    it('should forward to multiple recipients with cc and bcc', async () => {
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          }, 'getOriginal'],
+        ],
+      };
+
+      const sendResponse = {
+        methodResponses: [
+          ['Email/set', { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } }, 'createForward'],
+          ['EmailSubmission/set', { created: { submission: { id: 'submission-1' } } }, 'submitForward'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(setupResponse)
+        .mockResolvedValueOnce(sendResponse)
+        .mockResolvedValueOnce({ methodResponses: [] });
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({
+          success: true,
+          data: {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          },
+        })
+        .mockReturnValueOnce({ success: true, data: { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
+        .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
+      const tool = registeredTools.get('forward_email')!;
+
+      await tool.handler({
+        originalEmailId: 'original-email-1',
+        to: ['recipient1@example.com', 'recipient2@example.com'],
+        cc: ['cc1@example.com', 'cc2@example.com'],
+        bcc: ['bcc@example.com'],
+      });
+
+      const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
+      const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
+      const emailCreate = emailSetCall[1].create.forward;
+
+      expect(emailCreate.to).toHaveLength(2);
+      expect(emailCreate.to[0].email).toBe('recipient1@example.com');
+      expect(emailCreate.to[1].email).toBe('recipient2@example.com');
+      expect(emailCreate.cc).toHaveLength(2);
+      expect(emailCreate.cc[0].email).toBe('cc1@example.com');
+      expect(emailCreate.bcc).toHaveLength(1);
+      expect(emailCreate.bcc[0].email).toBe('bcc@example.com');
+    });
+
+    it('should use defaultFrom when from parameter not provided', async () => {
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          }, 'getOriginal'],
+        ],
+      };
+
+      const sendResponse = {
+        methodResponses: [
+          ['Email/set', { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } }, 'createForward'],
+          ['EmailSubmission/set', { created: { submission: { id: 'submission-1' } } }, 'submitForward'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(setupResponse)
+        .mockResolvedValueOnce(sendResponse)
+        .mockResolvedValueOnce({ methodResponses: [] });
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({
+          success: true,
+          data: {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          },
+        })
+        .mockReturnValueOnce({ success: true, data: { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
+        .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger, { defaultFrom: 'default@example.com' });
+      const tool = registeredTools.get('forward_email')!;
+
+      await tool.handler({
+        originalEmailId: 'original-email-1',
+        to: ['recipient@example.com'],
+      });
+
+      const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
+      const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
+      expect(emailSetCall[1].create.forward.from).toEqual([{ name: 'Test User', email: 'default@example.com' }]);
+    });
+
+    it('should mark original email with $forwarded keyword', async () => {
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          }, 'getOriginal'],
+        ],
+      };
+
+      const sendResponse = {
+        methodResponses: [
+          ['Email/set', { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } }, 'createForward'],
+          ['EmailSubmission/set', { created: { submission: { id: 'submission-1' } } }, 'submitForward'],
+        ],
+      };
+
+      const markResponse = {
+        methodResponses: [
+          ['Email/set', { updated: { 'original-email-1': null } }, 'markForwarded'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(setupResponse)
+        .mockResolvedValueOnce(sendResponse)
+        .mockResolvedValueOnce(markResponse);
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({
+          success: true,
+          data: {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Content' } },
+              attachments: [],
+            }],
+          },
+        })
+        .mockReturnValueOnce({ success: true, data: { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
+        .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger);
+      const tool = registeredTools.get('forward_email')!;
+
+      await tool.handler({
+        originalEmailId: 'original-email-1',
+        to: ['recipient@example.com'],
+      });
+
+      // Verify third request was to mark original as forwarded
+      expect(mockJmapClient.request).toHaveBeenCalledTimes(3);
+      const markCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[2][0];
+      const emailSetCall = markCall.find((call: unknown[]) => call[0] === 'Email/set');
+      expect(emailSetCall[1].update['original-email-1']).toEqual({ 'keywords/$forwarded': true });
+    });
+
+    it('should append signature to forwarded email', async () => {
+      const mockSignature = {
+        text: 'Best regards,\nJohn Doe',
+        html: '<p>Best regards,<br/>John Doe</p>',
+      };
+
+      const setupResponse = {
+        methodResponses: [
+          ['Identity/get', { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] }, 'getIdentity'],
+          ['Mailbox/get', { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] }, 'getMailboxes'],
+          ['Email/get', {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Original body' } },
+              attachments: [],
+            }],
+          }, 'getOriginal'],
+        ],
+      };
+
+      const sendResponse = {
+        methodResponses: [
+          ['Email/set', { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } }, 'createForward'],
+          ['EmailSubmission/set', { created: { submission: { id: 'submission-1' } } }, 'submitForward'],
+        ],
+      };
+
+      (mockJmapClient.request as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(setupResponse)
+        .mockResolvedValueOnce(sendResponse)
+        .mockResolvedValueOnce({ methodResponses: [] });
+
+      (mockJmapClient.parseMethodResponse as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'identity1', name: 'Test User', email: 'me@example.com' }] } })
+        .mockReturnValueOnce({ success: true, data: { list: [{ id: 'sent-mailbox-1', role: 'sent' }, { id: 'drafts-mailbox-1', role: 'drafts' }] } })
+        .mockReturnValueOnce({
+          success: true,
+          data: {
+            list: [{
+              subject: 'Test',
+              from: [{ email: 'sender@example.com' }],
+              to: [{ email: 'me@example.com' }],
+              sentAt: '2026-01-15T10:00:00Z',
+              textBody: [{ partId: 'text1' }],
+              bodyValues: { text1: { value: 'Original body' } },
+              attachments: [],
+            }],
+          },
+        })
+        .mockReturnValueOnce({ success: true, data: { created: { forward: { id: 'forward-1', blobId: 'blob-1', threadId: 'thread-1' } } } })
+        .mockReturnValueOnce({ success: true, data: { created: { submission: { id: 'submission-1' } } } });
+
+      registerEmailSendingTools(mockServer, mockJmapClient, mockLogger, { signatureContent: mockSignature });
+      const tool = registeredTools.get('forward_email')!;
+
+      await tool.handler({
+        originalEmailId: 'original-email-1',
+        to: ['recipient@example.com'],
+      });
+
+      const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
+      const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
+      const textBodyValue = emailSetCall[1].create.forward.bodyValues.text.value;
+      const htmlBodyValue = emailSetCall[1].create.forward.bodyValues.html.value;
+
+      expect(textBodyValue).toContain('-- \nBest regards,\nJohn Doe');
+      expect(htmlBodyValue).toContain('<p>Best regards,<br/>John Doe</p>');
+    });
+  });
 });
