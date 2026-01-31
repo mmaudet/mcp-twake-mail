@@ -274,10 +274,13 @@ describe('registerMailboxTools', () => {
   });
 
   describe('tool registration', () => {
-    it('registers both mailbox tools', () => {
+    it('registers all mailbox tools', () => {
       expect(registeredTools.has('get_mailbox')).toBe(true);
       expect(registeredTools.has('list_mailboxes')).toBe(true);
-      expect(registeredTools.size).toBe(2);
+      expect(registeredTools.has('create_mailbox')).toBe(true);
+      expect(registeredTools.has('rename_mailbox')).toBe(true);
+      expect(registeredTools.has('delete_mailbox')).toBe(true);
+      expect(registeredTools.size).toBe(5);
     });
   });
 });
