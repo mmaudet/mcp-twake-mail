@@ -1079,62 +1079,33 @@ ${originalHtmlBody || `<p>${escapeHtml(originalTextBody).replace(/\n/g, '<br/>')
         const senderEmail = from || defaultFrom || identity.email;
         const senderName = identity.name; // Always use identity name
 
-        // Check if original email has attachments
+        // Build email object with textBody/htmlBody
+        // Note: We use textBody/htmlBody + attachments property instead of bodyStructure
+        // because Apache James ignores bodyValues when bodyStructure is present
         const attachments = original.attachments || [];
-        const hasAttachments = attachments.length > 0;
 
-        let emailCreate: Record<string, unknown>;
+        const bodyValues: Record<string, { value: string }> = {
+          text: { value: plainTextBody },
+          html: { value: htmlBodyContent },
+        };
 
-        if (hasAttachments) {
-          // With attachments: use bodyStructure with multipart/mixed
-          const bodyValues: Record<string, { value: string }> = {
-            text: { value: plainTextBody },
-            html: { value: htmlBodyContent },
-          };
+        const emailCreate: Record<string, unknown> = {
+          mailboxIds: { [draftsMailboxId]: true },
+          from: [{ name: senderName, email: senderEmail }],
+          to: (to as string[]).map((email) => ({ email })),
+          subject: forwardSubject,
+          bodyValues,
+          textBody: [{ partId: 'text', type: 'text/plain' }],
+          htmlBody: [{ partId: 'html', type: 'text/html' }],
+        };
 
-          const attachmentParts = attachments.map((att, index) => ({
+        // Add attachments if present (reference original blobs)
+        if (attachments.length > 0) {
+          emailCreate.attachments = attachments.map((att, index) => ({
             blobId: att.blobId,
             type: att.type,
             name: att.name || `attachment-${index + 1}`,
-            disposition: 'attachment',
           }));
-
-          emailCreate = {
-            mailboxIds: { [draftsMailboxId]: true },
-            from: [{ name: senderName, email: senderEmail }],
-            to: (to as string[]).map((email) => ({ email })),
-            subject: forwardSubject,
-            bodyValues,
-            bodyStructure: {
-              type: 'multipart/mixed',
-              subParts: [
-                {
-                  type: 'multipart/alternative',
-                  subParts: [
-                    { type: 'text/plain', partId: 'text' },
-                    { type: 'text/html', partId: 'html' },
-                  ],
-                },
-                ...attachmentParts,
-              ],
-            },
-          };
-        } else {
-          // Without attachments: use simple textBody/htmlBody
-          const bodyValues: Record<string, { value: string }> = {
-            text: { value: plainTextBody },
-            html: { value: htmlBodyContent },
-          };
-
-          emailCreate = {
-            mailboxIds: { [draftsMailboxId]: true },
-            from: [{ name: senderName, email: senderEmail }],
-            to: (to as string[]).map((email) => ({ email })),
-            subject: forwardSubject,
-            bodyValues,
-            textBody: [{ partId: 'text', type: 'text/plain' }],
-            htmlBody: [{ partId: 'html', type: 'text/html' }],
-          };
         }
 
         // Add optional address fields
@@ -1325,7 +1296,6 @@ ${originalHtmlBody || `<p>${escapeHtml(originalTextBody).replace(/\n/g, '<br/>')
           {
             emailId: createdEmail.id,
             submissionId: createdSubmission.id,
-            hasAttachments,
             attachmentCount: attachments.length,
           },
           'forward_email success'

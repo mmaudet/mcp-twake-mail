@@ -1300,23 +1300,23 @@ describe('Email Sending Tools', () => {
         to: ['recipient@example.com'],
       });
 
-      // Verify bodyStructure is used with multipart/mixed for attachments
+      // Verify attachments property is used (not bodyStructure) for Apache James compatibility
       const sendCall = (mockJmapClient.request as ReturnType<typeof vi.fn>).mock.calls[1][0];
       const emailSetCall = sendCall.find((call: unknown[]) => call[0] === 'Email/set');
-      const bodyStructure = emailSetCall[1].create.forward.bodyStructure;
+      const emailData = emailSetCall[1].create.forward;
 
-      expect(bodyStructure).toBeDefined();
-      expect(bodyStructure.type).toBe('multipart/mixed');
-      expect(bodyStructure.subParts).toHaveLength(3); // alternative + 2 attachments
+      // Should use textBody/htmlBody instead of bodyStructure
+      expect(emailData.textBody).toBeDefined();
+      expect(emailData.htmlBody).toBeDefined();
+      expect(emailData.bodyStructure).toBeUndefined();
 
-      // First subPart should be multipart/alternative
-      expect(bodyStructure.subParts[0].type).toBe('multipart/alternative');
-
-      // Attachment blobIds should be referenced (not re-uploaded)
-      expect(bodyStructure.subParts[1].blobId).toBe('blob-att-1');
-      expect(bodyStructure.subParts[1].name).toBe('document.pdf');
-      expect(bodyStructure.subParts[2].blobId).toBe('blob-att-2');
-      expect(bodyStructure.subParts[2].name).toBe('image.png');
+      // Attachments should be referenced via attachments property
+      expect(emailData.attachments).toBeDefined();
+      expect(emailData.attachments).toHaveLength(2);
+      expect(emailData.attachments[0].blobId).toBe('blob-att-1');
+      expect(emailData.attachments[0].name).toBe('document.pdf');
+      expect(emailData.attachments[1].blobId).toBe('blob-att-2');
+      expect(emailData.attachments[1].name).toBe('image.png');
     });
 
     it('should include personal note above forwarded content', async () => {
