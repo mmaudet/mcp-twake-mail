@@ -8,7 +8,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { JMAPClient } from '../../jmap/client.js';
 import type { Logger } from '../../config/logger.js';
-import type { EmailSetResponse } from '../../types/jmap.js';
+import type { EmailSetResponse, Identity, EmailSubmissionSetResponse } from '../../types/jmap.js';
 
 /**
  * Common annotations for non-destructive write operations.
@@ -39,6 +39,25 @@ const EMAIL_CREATE_ANNOTATIONS: ToolAnnotations = {
   idempotentHint: false,
   openWorldHint: true,
 };
+
+/**
+ * Annotations for send operations (not idempotent - sends email).
+ */
+const EMAIL_SEND_ANNOTATIONS: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: true,
+};
+
+/**
+ * JMAP capabilities required for email submission.
+ */
+const SUBMISSION_USING = [
+  'urn:ietf:params:jmap:core',
+  'urn:ietf:params:jmap:mail',
+  'urn:ietf:params:jmap:submission',
+];
 
 /**
  * Register email operation MCP tools with the server.
@@ -1066,5 +1085,229 @@ export function registerEmailOperationTools(
     }
   );
 
-  logger.debug('Email operation tools registered: mark_as_read, mark_as_unread, delete_email, move_email, add_label, remove_label, create_draft, update_draft');
+  // send_draft - send a previously saved draft email (DRAFT-02)
+  server.registerTool(
+    'send_draft',
+    {
+      title: 'Send Draft Email',
+      description: 'Send a previously saved draft email. Draft will be moved to Sent folder and $draft keyword removed.',
+      inputSchema: {
+        draftId: z.string().describe('The unique identifier of the draft email to send'),
+      },
+      annotations: EMAIL_SEND_ANNOTATIONS,
+    },
+    async ({ draftId }) => {
+      logger.debug({ draftId }, 'send_draft called');
+
+      try {
+        const session = jmapClient.getSession();
+
+        // Step 1: Get identity and mailboxes in a single batch
+        const setupResponse = await jmapClient.request(
+          [
+            ['Identity/get', { accountId: session.accountId }, 'getIdentity'],
+            ['Mailbox/get', { accountId: session.accountId, properties: ['id', 'role'] }, 'getMailboxes'],
+          ],
+          SUBMISSION_USING
+        );
+
+        // Parse Identity response
+        const identityResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[0]);
+        if (!identityResult.success) {
+          logger.error({ error: identityResult.error }, 'Failed to get identity');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to get sending identity. Contact your administrator.',
+              },
+            ],
+          };
+        }
+
+        const identities = (identityResult.data as { list: Identity[] }).list;
+        if (!identities || identities.length === 0) {
+          logger.error({}, 'No sending identity available');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'No sending identity available. Contact your administrator.',
+              },
+            ],
+          };
+        }
+        const identity = identities[0];
+
+        // Parse Mailbox response and find Sent/Drafts by role
+        const mailboxResult = jmapClient.parseMethodResponse(setupResponse.methodResponses[1]);
+        if (!mailboxResult.success) {
+          logger.error({ error: mailboxResult.error }, 'Failed to get mailboxes');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to get mailboxes. Cannot send draft.',
+              },
+            ],
+          };
+        }
+
+        const mailboxes = (mailboxResult.data as { list: Array<{ id: string; role: string | null }> }).list;
+        const sentMailbox = mailboxes.find((mb) => mb.role === 'sent');
+        const draftsMailbox = mailboxes.find((mb) => mb.role === 'drafts');
+
+        // Step 2: Build onSuccessUpdateEmail for atomic draft-to-sent transition
+        const onSuccessUpdate: Record<string, unknown> = {
+          'keywords/$draft': null,
+        };
+
+        if (sentMailbox && draftsMailbox) {
+          onSuccessUpdate[`mailboxIds/${draftsMailbox.id}`] = null;
+          onSuccessUpdate[`mailboxIds/${sentMailbox.id}`] = true;
+        }
+
+        // Step 3: Submit the draft via EmailSubmission/set
+        const sendResponse = await jmapClient.request(
+          [
+            [
+              'EmailSubmission/set',
+              {
+                accountId: session.accountId,
+                create: {
+                  submission: {
+                    identityId: identity.id,
+                    emailId: draftId,
+                  },
+                },
+                onSuccessUpdateEmail: { '#submission': onSuccessUpdate },
+              },
+              'submitDraft',
+            ],
+          ],
+          SUBMISSION_USING
+        );
+
+        // Step 4: Check EmailSubmission/set response
+        const submissionResult = jmapClient.parseMethodResponse(sendResponse.methodResponses[0]);
+        if (!submissionResult.success) {
+          logger.error({ error: submissionResult.error, draftId }, 'JMAP error in send_draft');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to send draft: ${submissionResult.error?.description || submissionResult.error?.type || 'Unknown error'}`,
+              },
+            ],
+          };
+        }
+
+        const submissionSetResponse = submissionResult.data as unknown as EmailSubmissionSetResponse;
+        if (submissionSetResponse.notCreated?.submission) {
+          const error = submissionSetResponse.notCreated.submission;
+          logger.error({ error, draftId }, 'EmailSubmission/set notCreated in send_draft');
+
+          // User-friendly error messages
+          if (error.type === 'forbiddenFrom') {
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'Not authorized to send from this address.',
+                },
+              ],
+            };
+          } else if (error.type === 'forbiddenToSend') {
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'No permission to send emails.',
+                },
+              ],
+            };
+          } else if (error.type === 'tooManyRecipients') {
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'Too many recipients.',
+                },
+              ],
+            };
+          } else if (error.type === 'invalidEmail') {
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'Draft is invalid or missing required fields.',
+                },
+              ],
+            };
+          }
+
+          // Generic fallback
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: `Failed to send draft: ${error.type}`,
+              },
+            ],
+          };
+        }
+
+        const createdSubmission = submissionSetResponse.created?.submission;
+        if (!createdSubmission) {
+          logger.error({}, 'No created submission in response');
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to send draft: no submission created in response',
+              },
+            ],
+          };
+        }
+
+        logger.debug({ draftId, submissionId: createdSubmission.id, movedToSent: !!sentMailbox }, 'send_draft success');
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                success: true,
+                draftId,
+                submissionId: createdSubmission.id,
+                movedToSent: !!sentMailbox,
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error({ error, draftId }, 'Exception in send_draft');
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error sending draft: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  logger.debug('Email operation tools registered: mark_as_read, mark_as_unread, delete_email, move_email, add_label, remove_label, create_draft, update_draft, send_draft');
 }
