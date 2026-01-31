@@ -1,6 +1,6 @@
 /**
  * Tests for email operation MCP tools - mark_as_read, mark_as_unread, delete_email,
- * move_email, add_label, remove_label, create_draft, update_draft.
+ * move_email, add_label, remove_label, create_draft, update_draft, send_draft.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { registerEmailOperationTools } from './email-operations.js';
@@ -504,7 +504,7 @@ describe('registerEmailOperationTools', () => {
   });
 
   describe('tool registration', () => {
-    it('registers all 8 email operation tools', () => {
+    it('registers all 9 email operation tools', () => {
       expect(registeredTools.has('mark_as_read')).toBe(true);
       expect(registeredTools.has('mark_as_unread')).toBe(true);
       expect(registeredTools.has('delete_email')).toBe(true);
@@ -513,7 +513,8 @@ describe('registerEmailOperationTools', () => {
       expect(registeredTools.has('remove_label')).toBe(true);
       expect(registeredTools.has('create_draft')).toBe(true);
       expect(registeredTools.has('update_draft')).toBe(true);
-      expect(registeredTools.size).toBe(8);
+      expect(registeredTools.has('send_draft')).toBe(true);
+      expect(registeredTools.size).toBe(9);
     });
   });
 });
