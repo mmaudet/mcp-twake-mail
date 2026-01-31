@@ -23,6 +23,8 @@ mcp-twake-mail is a Model Context Protocol (MCP) server that connects any MCP-co
 
 ## Features
 
+### 29 MCP Tools
+
 **Email Read Tools:**
 - `list_emails` - List emails with filtering, search, and pagination
 - `get_email` - Get full email content including body and headers
@@ -32,27 +34,43 @@ mcp-twake-mail is a Model Context Protocol (MCP) server that connects any MCP-co
 **Email Compose Tools:**
 - `send_email` - Compose and send a new email (plain text and/or HTML)
 - `reply_email` - Reply to an email with proper threading (In-Reply-To, References)
+- `forward_email` - Forward an email with attachments and personal note
 - `create_draft` - Create a draft email for later editing or sending
+- `update_draft` - Update an existing draft (subject, body, recipients)
+- `send_draft` - Send a previously saved draft
 
 **Email Management Tools:**
-- `mark_as_read` - Mark an email as read
-- `mark_as_unread` - Mark an email as unread
+- `mark_as_read` / `mark_as_unread` - Mark email read status
 - `delete_email` - Move to trash or permanently delete
 - `move_email` - Move an email to a different mailbox
-- `add_label` - Add a label/mailbox to an email
-- `remove_label` - Remove a label/mailbox from an email
+- `add_label` / `remove_label` - Add or remove labels/mailboxes
+
+**Batch Operations (up to 50 emails at once):**
+- `batch_mark_read` / `batch_mark_unread` - Mark multiple emails
+- `batch_delete` - Delete multiple emails
+- `batch_move` - Move multiple emails to a mailbox
+- `batch_add_label` / `batch_remove_label` - Add/remove labels from multiple emails
 
 **Mailbox Tools:**
 - `list_mailboxes` - List all mailboxes (Inbox, Sent, Drafts, etc.)
+- `get_mailbox` - Get mailbox details by ID
+- `create_mailbox` - Create a new folder with optional nesting
+- `rename_mailbox` - Rename an existing folder (system folders protected)
+- `delete_mailbox` - Delete an empty folder with safety checks
 
 **Attachment Tools:**
 - `get_attachments` - List attachment metadata for an email
-- `download_attachment` - Download attachment content (auto-saves large files to disk)
+- `download_attachment` - Download attachment content (auto-saves large files)
 
-**Advanced Features:**
+### Advanced Features
+
 - **Auto-discovery** — Configure with just your email address (DNS SRV + .well-known/jmap)
 - **Email signatures** — Markdown signature files automatically appended to emails
 - **Default sender identity** — Configure default "from" address
+- **Batch operations** — Process up to 50 emails in a single request
+- **Draft workflow** — Create, update, and send drafts with atomic transitions
+- **Folder management** — Create, rename, and delete custom folders
+- **System folder protection** — Cannot modify Inbox, Sent, Drafts, Trash
 - OIDC authentication with PKCE (S256) for enterprise SSO
 - Automatic token refresh for OIDC sessions
 - Thread-based email grouping
@@ -71,6 +89,11 @@ mcp-twake-mail is a Model Context Protocol (MCP) server that connects any MCP-co
 - **MCP-compatible AI assistant** - Claude Desktop, Claude Code, or any MCP client
 
 ## Installation
+
+**From npm (recommended):**
+```bash
+npx mcp-twake-mail setup
+```
 
 **From source:**
 ```bash
@@ -96,9 +119,9 @@ The wizard will:
 5. Test the connection to your JMAP server
 6. Generate and optionally write the configuration to your Claude Desktop config file
 
-### Auto-Discovery Mode (New!)
+### Auto-Discovery Mode
 
-The setup wizard now supports **auto-discovery** — just provide your email address and the system will automatically find your JMAP server:
+The setup wizard supports **auto-discovery** — just provide your email address and the system will automatically find your JMAP server:
 
 ```
 === MCP Twake Mail Setup Wizard ===
@@ -124,7 +147,7 @@ The auto-discovery uses:
 
 See [docs/auto-discovery.md](docs/auto-discovery.md) for details.
 
-### Email Signature Support (New!)
+### Email Signature Support
 
 Configure an optional Markdown signature file that will be automatically appended to all emails:
 
@@ -141,6 +164,8 @@ Software Engineer
 ```
 
 The signature is automatically converted to HTML for rich emails and plain text for simple emails.
+
+See [docs/signature.md](docs/signature.md) for details.
 
 ### CLI Commands
 
@@ -269,13 +294,29 @@ Once configured, you can ask Claude natural language questions about your email:
 **Email composition:**
 - "Send an email to pierre@example.com about the meeting tomorrow"
 - "Reply to this email thanking them for the information"
+- "Forward this email to the team with a note"
 - "Create a draft email to the team about the project update"
+
+**Draft management:**
+- "Update the draft to change the subject line"
+- "Add Marie to the CC list on that draft"
+- "Send the draft I was working on"
 
 **Email management:**
 - "Mark this email as read"
 - "Move this email to the Archive folder"
 - "Delete all spam emails"
 - "Add the 'Important' label to this email"
+
+**Batch operations:**
+- "Mark all emails from last week as read"
+- "Move all newsletters to the Archive folder"
+- "Delete all emails older than 30 days in Trash"
+
+**Folder management:**
+- "Create a new folder called 'Projects'"
+- "Rename the 'Old Stuff' folder to 'Archive 2025'"
+- "Delete the empty 'Temp' folder"
 
 **Attachments:**
 - "What attachments are in this email?"
@@ -284,28 +325,42 @@ Once configured, you can ask Claude natural language questions about your email:
 ## Documentation
 
 - [Auto-Discovery](docs/auto-discovery.md) — How JMAP and OIDC auto-discovery works
+- [Email Signatures](docs/signature.md) — Configure Markdown email signatures
 - [OIDC Configuration](docs/oidc-configuration.md) — Detailed OIDC/OAuth setup guide
 
 ## Available Tools
 
-| Tool Name | Description |
-|-----------|-------------|
-| `list_emails` | List emails with optional filters (mailbox, limit, search) |
-| `get_email` | Get full email content by ID |
-| `search_emails` | Search emails by keywords |
-| `get_thread` | Get all emails in a thread |
-| `send_email` | Send a new email |
-| `reply_email` | Reply to an email with threading |
-| `create_draft` | Create a draft email |
-| `mark_as_read` | Mark email as read |
-| `mark_as_unread` | Mark email as unread |
-| `delete_email` | Delete or trash an email |
-| `move_email` | Move email to another mailbox |
-| `add_label` | Add mailbox/label to email |
-| `remove_label` | Remove mailbox/label from email |
-| `list_mailboxes` | List all mailboxes |
-| `get_attachments` | List attachment metadata |
-| `download_attachment` | Download attachment content |
+| Tool Name | Description | Category |
+|-----------|-------------|----------|
+| `list_emails` | List emails with optional filters (mailbox, limit, search) | Read |
+| `get_email` | Get full email content by ID | Read |
+| `search_emails` | Search emails by keywords | Read |
+| `get_thread` | Get all emails in a thread | Read |
+| `send_email` | Send a new email | Compose |
+| `reply_email` | Reply to an email with threading | Compose |
+| `forward_email` | Forward an email with attachments | Compose |
+| `create_draft` | Create a draft email | Compose |
+| `update_draft` | Update an existing draft | Compose |
+| `send_draft` | Send a saved draft | Compose |
+| `mark_as_read` | Mark email as read | Manage |
+| `mark_as_unread` | Mark email as unread | Manage |
+| `delete_email` | Delete or trash an email | Manage |
+| `move_email` | Move email to another mailbox | Manage |
+| `add_label` | Add mailbox/label to email | Manage |
+| `remove_label` | Remove mailbox/label from email | Manage |
+| `batch_mark_read` | Mark multiple emails as read | Batch |
+| `batch_mark_unread` | Mark multiple emails as unread | Batch |
+| `batch_delete` | Delete multiple emails | Batch |
+| `batch_move` | Move multiple emails | Batch |
+| `batch_add_label` | Add label to multiple emails | Batch |
+| `batch_remove_label` | Remove label from multiple emails | Batch |
+| `list_mailboxes` | List all mailboxes | Mailbox |
+| `get_mailbox` | Get mailbox details | Mailbox |
+| `create_mailbox` | Create a new folder | Mailbox |
+| `rename_mailbox` | Rename a folder | Mailbox |
+| `delete_mailbox` | Delete an empty folder | Mailbox |
+| `get_attachments` | List attachment metadata | Attachment |
+| `download_attachment` | Download attachment content | Attachment |
 
 ## Development
 
@@ -314,7 +369,7 @@ git clone https://github.com/linagora/mcp-twake-mail.git
 cd mcp-twake-mail
 npm install
 npm run build    # compile TypeScript
-npm test         # run tests
+npm test         # run tests (704 tests)
 npm run dev      # watch mode (auto-rebuild on file changes)
 ```
 
@@ -325,14 +380,14 @@ The server uses the MCP stdio transport and communicates via JSON-RPC on stdin/s
 mcp-twake-mail is built with a layered architecture:
 
 1. **Configuration Layer** - Zod-based environment variable validation with fail-fast behavior
-2. **Logging Layer** - Pino logger configured for stderr output (prevents stdout contamination in MCP stdio transport)
+2. **Logging Layer** - Pino logger configured for stderr output (prevents stdout contamination)
 3. **Authentication Layer** - Multi-method auth support (Basic, Bearer, OIDC with PKCE)
 4. **Token Management** - Automatic token refresh for OIDC with secure token storage
 5. **Discovery Layer** - Auto-discovery via DNS SRV, .well-known/jmap, and OAuth metadata
 6. **JMAP Client Layer** - Session management, request batching, blob download support
 7. **Signature Layer** - Markdown-to-HTML conversion for email signatures
 8. **Transformation Layer** - Email/Mailbox data transformation for AI-friendly output
-9. **MCP Tool Layer** - 17 MCP tools exposing email functionality with tool annotations
+9. **MCP Tool Layer** - 29 MCP tools exposing email functionality with tool annotations
 10. **Entry Point** - MCP server initialization with stdio transport
 
 **Key design decisions:**
@@ -341,6 +396,16 @@ mcp-twake-mail is built with a layered architecture:
 - AI-friendly error formatting for troubleshooting
 - Large attachment handling (auto-save to disk for files > 750KB)
 - MCP tool annotations for AI clients (readOnlyHint, destructiveHint, idempotentHint)
+- Batch operations with per-item success/failure reporting
+- System folder protection for safe mailbox management
+
+## Version History
+
+| Version | Release | Highlights |
+|---------|---------|------------|
+| v2.0 | 2026-01-31 | Draft management (update/send), Mailbox management (create/rename/delete), 29 tools total |
+| v1.1 | 2026-01-31 | Email forwarding, Batch operations (6 tools) |
+| v1.0 | 2026-01-30 | Initial release - 17 tools, 3 auth methods, auto-discovery, signatures |
 
 ## License
 

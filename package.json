@@ -1,6 +1,6 @@
 {
   "name": "mcp-twake-mail",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "MCP server for Twake.ai — integrate your sovereign JMAP email server with any MCP-compatible AI assistant",
   "type": "module",
   "main": "./build/index.js",
