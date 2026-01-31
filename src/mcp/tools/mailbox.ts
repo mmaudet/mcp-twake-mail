@@ -371,5 +371,191 @@ export function registerMailboxTools(
     }
   );
 
-  logger.info('Mailbox tools registered: get_mailbox, list_mailboxes, create_mailbox');
+  // rename_mailbox tool (MBOX-02)
+  server.tool(
+    'rename_mailbox',
+    'Rename an existing mailbox. Cannot rename system mailboxes (Inbox, Sent, Drafts, Trash, etc.).',
+    {
+      mailboxId: z.string().describe('ID of the mailbox to rename'),
+      newName: z
+        .string()
+        .min(1, 'Mailbox name cannot be empty')
+        .max(100, 'Mailbox name too long')
+        .describe('New name for the mailbox'),
+    },
+    {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+      title: 'Rename Mailbox',
+    },
+    async ({ mailboxId, newName }) => {
+      logger.debug({ mailboxId, newName }, 'rename_mailbox called');
+
+      try {
+        const session = jmapClient.getSession();
+
+        // Step 1: Fetch mailbox to check permissions and role
+        const getResponse = await jmapClient.request([
+          [
+            'Mailbox/get',
+            {
+              accountId: session.accountId,
+              ids: [mailboxId],
+              properties: ['id', 'name', 'role', 'myRights'],
+            },
+            'getMailbox',
+          ],
+        ]);
+
+        const getResult = jmapClient.parseMethodResponse(getResponse.methodResponses[0]);
+
+        if (!getResult.success) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error checking mailbox: ${getResult.error?.description || getResult.error?.type || 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const mailboxList = getResult.data?.list as
+          | Array<{
+              id: string;
+              name: string;
+              role: string | null;
+              myRights?: { mayRename?: boolean };
+            }>
+          | undefined;
+        const notFound = getResult.data?.notFound as string[] | undefined;
+
+        if (notFound?.includes(mailboxId) || !mailboxList || mailboxList.length === 0) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Mailbox not found: ${mailboxId}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const mailbox = mailboxList[0];
+
+        // Check for system mailbox
+        if (mailbox.role !== null) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Cannot rename system mailbox: ${mailbox.role}. System folders (Inbox, Sent, Drafts, Trash, etc.) cannot be renamed.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // Check rename permission
+        if (mailbox.myRights && !mailbox.myRights.mayRename) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: 'You do not have permission to rename this mailbox',
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // Step 2: Perform rename
+        const setResponse = await jmapClient.request([
+          [
+            'Mailbox/set',
+            {
+              accountId: session.accountId,
+              update: {
+                [mailboxId]: { name: newName.trim() },
+              },
+            },
+            'renameMailbox',
+          ],
+        ]);
+
+        const setResult = jmapClient.parseMethodResponse(setResponse.methodResponses[0]);
+
+        if (!setResult.success) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error renaming mailbox: ${setResult.error?.description || setResult.error?.type || 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const response = setResult.data as unknown as MailboxSetResponse;
+
+        if (response.notUpdated?.[mailboxId]) {
+          const error = response.notUpdated[mailboxId];
+          let errorMessage = `Failed to rename mailbox: ${error.type}`;
+          if (error.type === 'invalidProperties' && error.description?.includes('name')) {
+            errorMessage = 'A mailbox with this name already exists at this level';
+          } else if (error.description) {
+            errorMessage = `Failed to rename mailbox: ${error.description}`;
+          }
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: errorMessage,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        logger.debug({ mailboxId, newName }, 'rename_mailbox success');
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  success: true,
+                  mailboxId,
+                  oldName: mailbox.name,
+                  newName: newName.trim(),
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error({ error, mailboxId, newName }, 'Exception in rename_mailbox');
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error renaming mailbox: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  logger.info('Mailbox tools registered: get_mailbox, list_mailboxes, create_mailbox, rename_mailbox');
 }
